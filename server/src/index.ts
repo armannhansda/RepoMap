@@ -1,0 +1,40 @@
+import express from 'express';
+import cors from 'cors';
+import repoRoutes from "./routes/repoRoutes.ts"
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/repo", repoRoutes)
+
+
+app.get("/", (req, res) => {
+  res.send("RepoMap api Running");
+});
+
+const DEFAULT_PORT = Number(process.env.PORT ?? 5000);
+
+function listen(port: number) {
+  const server = app.listen(port, (error?: NodeJS.ErrnoException) => {
+    if (error?.code === "EADDRINUSE" && !process.env.PORT) {
+      server.close();
+      listen(port + 1);
+      return;
+    }
+
+    if (error) {
+      console.error(`server failed to start on port ${port}`);
+      console.error(error.message);
+      process.exitCode = 1;
+      return;
+    }
+
+    console.log(`server running on port ${port}`);
+  });
+
+  return server;
+}
+
+export const server = listen(DEFAULT_PORT);
