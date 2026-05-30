@@ -1,6 +1,11 @@
 import { type Request, type Response }  from "express";
+import {randomUUID} from "crypto";
+
+
 import { cloneRepository } from "../services/repoclone.ts";
 import { runParser } from "../services/runParser.ts";
+import { saveRepository } from "../store/repoRegistry.ts";
+
 
 
 export async function analyzeRepo(
@@ -23,6 +28,10 @@ export async function analyzeRepo(
 
     const clonedRepo = await cloneRepository(repoUrl);
 
+    const repoId = randomUUID()
+
+    saveRepository(repoId, clonedRepo.repoPath);
+
     console.log("Running Parser....");
 
     const graph = await runParser(
@@ -33,6 +42,7 @@ export async function analyzeRepo(
 
     res.json({
       success: true,
+      repoId,
       graph,
     })
   } catch (error) {

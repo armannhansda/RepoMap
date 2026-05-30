@@ -17,3 +17,13 @@ export async function analyzeRepo(repoUrl:string) {
   return response.json()
   
 }
+
+export async function getFileContent(repoId:string, filePath:string) {
+
+  const response = await fetch (
+    `http://localhost:5000/api/repo/file?repoId=${repoId}&filePath=${filePath}`
+  )
+
+  return response.json();
+  
+}
