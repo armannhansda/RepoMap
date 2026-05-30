@@ -1,13 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import repoRoutes from "./routes/repoRoutes.ts"
+import fileRoutes from "./routes/fileRoutes.ts"
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/repo", repoRoutes)
+app.use("/api/repo", repoRoutes);
+app.use("/api/repo", fileRoutes);
 
 
 app.get("/", (req, res) => {

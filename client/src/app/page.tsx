@@ -11,6 +11,8 @@ export default function Home(){
 
   const [loading, setLoading] = useState(false);
 
+  const [repoId, setRepoId] = useState("")
+
   async function handleAnalyze() {
 
     try {
@@ -20,6 +22,9 @@ export default function Home(){
       const result = await analyzeRepo(repoUrl);
 
       setGraph(result.graph);
+
+      setRepoId(result.repoId);
+
 
     } catch (error) {
       console.error(error)
@@ -61,7 +66,7 @@ export default function Home(){
       </div>
 
       {graph && (
-        <RepoGraph graph={graph} />
+        <RepoGraph graph={graph} repoId={repoId} />
       )}
     </main>
   )

@@ -10,9 +10,10 @@ import FileSidebar from "./FileSidebar";
 
 interface Props {
   graph: any;
+  repoId: string;
 }
 
-export default function RepoGraph({ graph }: Props) {
+export default function RepoGraph({ graph, repoId }: Props) {
   const [selectedNode, setSelectedNode] = useState<any>(null);
 
   const { nodes, edges } = useMemo(() => {
@@ -65,7 +66,10 @@ export default function RepoGraph({ graph }: Props) {
         </ReactFlow>
       </div>
 
-      <FileSidebar node={selectedNode} />
+      <FileSidebar 
+        node={selectedNode}
+        repoId={repoId}
+      />
     </div>
   );
 }
