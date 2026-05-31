@@ -22,6 +22,11 @@ export function resolveImportPath(
   const currentDir = path.dirname(currentPath);
   const absoluteImportPath = path.resolve(currentDir, importPath);
 
+  // Check if the path already exists directly (e.g., explicit extension like .ts/.js)
+  if (fs.existsSync(absoluteImportPath) && fs.statSync(absoluteImportPath).isFile()) {
+    return path.relative(repoPath, absoluteImportPath);
+  }
+
   //try extension
   for(const ext of extension){
     const fullPath = absoluteImportPath+ext;

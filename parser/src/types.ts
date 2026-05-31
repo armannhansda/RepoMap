@@ -9,3 +9,9 @@ export interface FunctionNode{
   types: | "function" | "arrow" | "method";
   line: number;
 }
+
+export interface FunctionCall{
+  caller:string,
+  callee:string,
+  file:string
+}

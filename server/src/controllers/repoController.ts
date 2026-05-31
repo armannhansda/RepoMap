@@ -19,9 +19,10 @@ export async function analyzeRepo(
     const {repoUrl} = req.body
 
     if(!repoUrl){
-        res.status(400).json({
+      res.status(400).json({
         error: "Repository url required",
-      })
+      });
+      return;
     }
 
     console.log("cloning Repository.....")

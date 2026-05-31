@@ -1,3 +1,4 @@
+import { extractCalls } from "./callExtractor.ts";
 import { extractFunctions } from "./functionExtractor.ts";
 import { buildGraph } from "./graphBuilder.ts";
 import { extractImports } from "./importExtractor.ts";
@@ -18,13 +19,18 @@ async function main() {
   const dependencies = await extractImports(repoPath);
 
   const functions = await extractFunctions(repoPath);
+  
+  const calls = await extractCalls(repoPath);
 
-  const graph = buildGraph(dependencies, functions);
+  const graph = buildGraph(dependencies, functions, calls);
 
 
 // console.log(JSON.stringify(functions, null, 2));
   
 console.log(JSON.stringify(graph, null, 2));
+
+// console.log(JSON.stringify(calls, null, 2));
+
 
 
 }

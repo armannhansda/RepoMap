@@ -1,5 +1,6 @@
 import {Project} from "ts-morph";
-import path from "path"
+import path from "path";
+import { scannerRepository } from "./scanner.ts";
 
 
 export async function extractFunctions(repoPath:string) {
@@ -9,12 +10,11 @@ export async function extractFunctions(repoPath:string) {
     })
 
    
-    project.addSourceFilesAtPaths(
-        path.join(
-            repoPath,
-            "**/*.{ts,tsx,js,jsx}"
-        )
-    );
+    const files = await scannerRepository(repoPath);
+
+    for (const file of files) {
+        project.addSourceFileAtPath(file.absolutePath);
+    }
 
     const sourceFiles = project.getSourceFiles();
 
