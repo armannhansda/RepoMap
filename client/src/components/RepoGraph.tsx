@@ -22,8 +22,14 @@ export default function RepoGraph({ graph, repoId }: Props) {
       data: {
         label: node.label,
         path: node.path,
+        file: node.file,
+        line: node.line,
+        functionType: node.functionType,
         imports: node.imports,
         importedBy: node.importedBy,
+        functions: node.functions,
+        calls: node.calls,
+        calledBy: node.calledBy,
       },
       position: {
         x: 0,

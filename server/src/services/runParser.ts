@@ -18,7 +18,7 @@ export function runParser(
       );
 
       //command
-      const command = `npx ts-node src/index.ts "${repoPath}"`;
+      const command = `npx tsx src/index.ts "${repoPath}"`;
 
       exec(
         command,{
