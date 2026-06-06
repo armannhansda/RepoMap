@@ -23,6 +23,10 @@ export function buildGraph(
 
   const fileFunction = new Map<string, any[]>();
 
+  const functionCalls = new Map<string, string[]>();
+
+  const calledByMap = new Map<string, string[]>();
+
   for (const dep of dependencies){
     //create node
     nodes.push({
@@ -75,6 +79,8 @@ export function buildGraph(
       name:fn.name,
       Type:fn.type,
       line: fn.line,
+      calls: functionCalls.get(`${fn.file}:${fn.name}`),
+      calledBy: calledByMap.get(`${fn.file}:${fn.name}`),
     })
 
     nodes.push({
@@ -83,7 +89,9 @@ export function buildGraph(
       file: fn.file,
       functionType: fn.type,
       line:fn.line,
-      type: "function"
+      type: "function",
+      calls: functionCalls.get(`${fn.file}:${fn.name}`),
+      calledBy: calledByMap.get(`${fn.file}:${fn.name}`),
     });
 
     edges.push({
@@ -108,6 +116,32 @@ export function buildGraph(
 
     if(!callerId || !calleeId) continue;
 
+    // record a human-friendly callee name on the caller's calls list
+    if (!functionCalls.has(callerKey)) {
+      functionCalls.set(callerKey, []);
+    }
+    functionCalls.get(callerKey)?.push(call.callee);
+
+    // determine the callee map key (file:name) so we can populate calledBy
+    const calleeMapKey = (() => {
+      // if calleeId came from functionByFileAndName lookup it was based on same-file key
+      const sameFileMatch = functionByFileAndName.get(calleeKeySameFile);
+      if (sameFileMatch) {
+        return calleeKeySameFile;
+      }
+      // otherwise calleeId is a functionId like "<file>::<name>"
+      if (typeof calleeId === "string") {
+        const parts = calleeId.split("::");
+        if (parts.length === 2) return `${parts[0]}:${parts[1]}`;
+      }
+      return null;
+    })();
+
+    if (calleeMapKey) {
+      if (!calledByMap.has(calleeMapKey)) calledByMap.set(calleeMapKey, []);
+      calledByMap.get(calleeMapKey)?.push(call.caller);
+    }
+
     // avoid duplicate edges
     const exists = edges.some(e=>e.source===callerId && e.target===calleeId && e.type==="calls");
     if(!exists){
@@ -119,12 +153,36 @@ export function buildGraph(
     }
   }
 
-  // Populate functions on file nodes now that fileFunction has been fully built
-  nodes.forEach((node) => {
-    if (node.type === "file") {
-      node.functions = fileFunction.get(node.id) || [];
-    }
-  });
+    // Attach calls and calledBy arrays to function nodes now that we've built the maps
+    nodes.forEach((node) => {
+      if (node.type === "function") {
+        const key = `${node.file}:${node.label}`;
+        node.calls = functionCalls.get(key) || [];
+        node.calledBy = calledByMap.get(key) || [];
+      }
+    });
+
+    // Rebuild fileFunction entries from function nodes so file nodes have up-to-date data
+    fileFunction.clear();
+    nodes.forEach((node) => {
+      if (node.type === "function") {
+        if (!fileFunction.has(node.file)) fileFunction.set(node.file, []);
+        fileFunction.get(node.file)?.push({
+          name: node.label,
+          Type: node.functionType,
+          line: node.line,
+          calls: node.calls,
+          calledBy: node.calledBy,
+        });
+      }
+    });
+
+    // Populate functions on file nodes now that fileFunction has been rebuilt
+    nodes.forEach((node) => {
+      if (node.type === "file") {
+        node.functions = fileFunction.get(node.id) || [];
+      }
+    });
 
   return {
     nodes,

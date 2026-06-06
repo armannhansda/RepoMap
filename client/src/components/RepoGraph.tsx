@@ -28,6 +28,8 @@ export default function RepoGraph({ graph, repoId }: Props) {
         imports: node.imports,
         importedBy: node.importedBy,
         functions: node.functions,
+        calls: node.calls,
+        calledBy: node.calledBy,
       },
       position: {
         x: 0,
