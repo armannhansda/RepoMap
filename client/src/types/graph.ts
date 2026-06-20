@@ -1,4 +1,4 @@
-import { Node, Edge } from "@xyflow/react";
+import { Node, Edge } from "reactflow";
 
 export interface GraphData {
   repoId: string;
