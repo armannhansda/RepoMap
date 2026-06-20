@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts,json --exec \"node src/index.ts\"",
+    "dev": "nodemon --watch src --ext ts,json --exec \"npx tsx src/index.ts\"",
+    "start": "npx tsx src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
