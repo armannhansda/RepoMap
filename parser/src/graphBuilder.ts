@@ -23,7 +23,7 @@ export function buildGraph(
 
   const fileFunction = new Map<string, any[]>();
 
-  const functionCalls = new Map<string, string[]>();
+  const functionCalls = new Map<string , string[]>();
 
   const calledByMap = new Map<string, string[]>();
 
@@ -70,17 +70,63 @@ export function buildGraph(
 
     if (!functionByName.has(fn.name)) functionByName.set(fn.name, []);
     functionByName.get(fn.name)!.push(functionId);
+  }
+
+  // create call edges: prefer same-file resolution, fall back to global name match
+  for (const call of calls) {
+    const callerKey = `${call.file}:${call.caller}`;
+    const calleeKeySameFile = `${call.file}:${call.callee}`;
+
+    const callerId = functionByFileAndName.get(callerKey) || functionByName.get(call.caller)?.[0];
+
+    let calleeId = functionByFileAndName.get(calleeKeySameFile);
+    if (!calleeId) {
+      const matches = functionByName.get(call.callee) || [];
+      calleeId = matches[0];
+    }
+
+    if (!functionCalls.has(callerKey)) {
+      functionCalls.set(callerKey, []);
+    }
+    const callerCalls = functionCalls.get(callerKey)!;
+    if (!callerCalls.includes(call.callee)) callerCalls.push(call.callee);
+
+    if (calleeId) {
+      const calleeKey = calleeId.replace("::", ":");
+      if (!calledByMap.has(calleeKey)) {
+        calledByMap.set(calleeKey, []);
+      }
+      const calleeCalledBy = calledByMap.get(calleeKey)!;
+      if (!calleeCalledBy.includes(call.caller)) calleeCalledBy.push(call.caller);
+    }
+
+    if (!callerId || !calleeId) continue;
+
+    // avoid duplicate edges
+    const exists = edges.some(e => e.source === callerId && e.target === calleeId && e.type === "calls");
+    if (!exists) {
+      edges.push({
+        source: callerId,
+        target: calleeId,
+        type: "calls"
+      })
+    }
+  }
+
+  for (const fn of functions){
+    const functionId = `${fn.file}::${fn.name}`;
 
     if(!fileFunction.has(fn.file)){
       fileFunction.set(fn.file,[])
     }
 
     fileFunction.get(fn.file)?.push({
-      name:fn.name,
-      Type:fn.type,
+      name: fn.name,
+      type: fn.type,
       line: fn.line,
-      calls: functionCalls.get(`${fn.file}:${fn.name}`),
-      calledBy: calledByMap.get(`${fn.file}:${fn.name}`),
+      endLine: fn.endLine,
+      calls: functionCalls.get(`${fn.file}:${fn.name}`) || [],
+      calledBy: calledByMap.get(`${fn.file}:${fn.name}`) || [],
     })
 
     nodes.push({
@@ -89,9 +135,10 @@ export function buildGraph(
       file: fn.file,
       functionType: fn.type,
       line:fn.line,
+      endLine: fn.endLine,
       type: "function",
-      calls: functionCalls.get(`${fn.file}:${fn.name}`),
-      calledBy: calledByMap.get(`${fn.file}:${fn.name}`),
+      calls: functionCalls.get(`${fn.file}:${fn.name}`) || [],
+      calledBy:calledByMap.get(`${fn.file}:${fn.name}`) || [],
     });
 
     edges.push({
@@ -100,58 +147,7 @@ export function buildGraph(
       type:"contains"
     })
   }
-
-  // create call edges: prefer same-file resolution, fall back to global name match
-  for(const call of calls){
-    const callerKey = `${call.file}:${call.caller}`;
-    const calleeKeySameFile = `${call.file}:${call.callee}`;
-
-    const callerId = functionByFileAndName.get(callerKey) || functionByName.get(call.caller)?.[0];
-
-    let calleeId = functionByFileAndName.get(calleeKeySameFile);
-    if(!calleeId){
-      const matches = functionByName.get(call.callee) || [];
-      calleeId = matches[0];
-    }
-
-    if(!callerId || !calleeId) continue;
-
-    // record a human-friendly callee name on the caller's calls list
-    if (!functionCalls.has(callerKey)) {
-      functionCalls.set(callerKey, []);
-    }
-    functionCalls.get(callerKey)?.push(call.callee);
-
-    // determine the callee map key (file:name) so we can populate calledBy
-    const calleeMapKey = (() => {
-      // if calleeId came from functionByFileAndName lookup it was based on same-file key
-      const sameFileMatch = functionByFileAndName.get(calleeKeySameFile);
-      if (sameFileMatch) {
-        return calleeKeySameFile;
-      }
-      // otherwise calleeId is a functionId like "<file>::<name>"
-      if (typeof calleeId === "string") {
-        const parts = calleeId.split("::");
-        if (parts.length === 2) return `${parts[0]}:${parts[1]}`;
-      }
-      return null;
-    })();
-
-    if (calleeMapKey) {
-      if (!calledByMap.has(calleeMapKey)) calledByMap.set(calleeMapKey, []);
-      calledByMap.get(calleeMapKey)?.push(call.caller);
-    }
-
-    // avoid duplicate edges
-    const exists = edges.some(e=>e.source===callerId && e.target===calleeId && e.type==="calls");
-    if(!exists){
-      edges.push({
-        source:callerId,
-        target: calleeId,
-        type: "calls"
-      })
-    }
-  }
+  
 
     // Attach calls and calledBy arrays to function nodes now that we've built the maps
     nodes.forEach((node) => {

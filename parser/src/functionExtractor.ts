@@ -32,6 +32,7 @@ export async function extractFunctions(repoPath:string) {
                 file: relativePath,
                 type: "function",
                 line: fn.getStartLineNumber(),
+                endLine: fn.getEndLineNumber(),
             })
         })
 
@@ -45,6 +46,7 @@ export async function extractFunctions(repoPath:string) {
                     file: relativePath,
                     type: "arrow",
                     line: variable.getStartLineNumber(),
+                    endLine: variable.getEndLineNumber(),
                 })
             }
         })
@@ -58,6 +60,7 @@ export async function extractFunctions(repoPath:string) {
                     file: relativePath,
                     type: "method",
                     line:method.getStartLineNumber(),
+                    endLine: method.getEndLineNumber(),
                 })
             })
         })
