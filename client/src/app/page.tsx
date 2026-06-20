@@ -70,6 +70,45 @@ export default function Home(){
 
   const selectedNode = graph?.nodes?.find((n: any) => n.id === selectedNodeId);
 
+  const [leftWidth, setLeftWidth] = useState(256);
+  const [rightWidth, setRightWidth] = useState(400);
+
+  const startResizeLeft = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftWidth;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      setLeftWidth(Math.max(150, Math.min(600, startWidth + (e.clientX - startX))));
+    };
+    
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const startResizeRight = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = rightWidth;
+    
+    const onMouseMove = (e: MouseEvent) => {
+      setRightWidth(Math.max(200, Math.min(800, startWidth - (e.clientX - startX))));
+    };
+    
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-bg-base text-text-main font-sans">
       <Header 
@@ -86,12 +125,18 @@ export default function Home(){
       
       <div className="flex flex-1 overflow-hidden relative">
         {graph && (
-          <LeftSidebar 
-            nodes={graph.nodes} 
-            selectedNodeId={selectedNodeId}
-            onNodeSelect={setSelectedNodeId}
-            repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
-          />
+          <div style={{ width: leftWidth }} className="flex-shrink-0 relative">
+            <LeftSidebar 
+              nodes={graph.nodes} 
+              selectedNodeId={selectedNodeId}
+              onNodeSelect={setSelectedNodeId}
+              repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
+            />
+            <div 
+              className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-brand z-10 transition-colors"
+              onMouseDown={startResizeLeft}
+            />
+          </div>
         )}
         
         <main className="flex-1 relative bg-surface overflow-hidden">
@@ -114,6 +159,7 @@ export default function Home(){
           ) : (
             <RepoGraph 
               graph={graph} 
+              repoId={repoId}
               selectedNodeId={selectedNodeId}
               onNodeSelect={(node) => setSelectedNodeId(node.id)}
             />
@@ -121,11 +167,17 @@ export default function Home(){
         </main>
 
         {graph && selectedNode && (
-          <FileSidebar 
-            node={selectedNode} 
-            repoId={repoId} 
-            onClose={() => setSelectedNodeId(undefined)} 
-          />
+          <div style={{ width: rightWidth }} className="flex-shrink-0 relative">
+            <div 
+              className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-brand z-10 transition-colors"
+              onMouseDown={startResizeRight}
+            />
+            <FileSidebar 
+              node={selectedNode} 
+              repoId={repoId} 
+              onClose={() => setSelectedNodeId(undefined)} 
+            />
+          </div>
         )}
       </div>
     </div>

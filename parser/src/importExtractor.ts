@@ -1,59 +1,61 @@
-import { Project } from "ts-morph";
+import fs from "fs";
 import { scannerRepository } from "./scanner.ts";
 import { resolveImportPath } from "./resolveImports.ts";
-import path from "path"
+import path from "path";
 
-function toDisplayPath(repoPath: string, absolutePath: string) {
-  const normalizedRepoPath = repoPath.replace(/\\/g, "/");
-  const normalizedAbsolutePath = absolutePath.replace(/\\/g, "/");
+const IMPORT_REGEXES = [
+  /import\s+(?:.*?\s+from\s+)?['"](.*?)['"]/g,
+  /require\(['"](.*?)['"]\)/g,
+  /^import\s+([a-zA-Z0-9_.-]+)/gm,
+  /^from\s+([a-zA-Z0-9_.-]+)\s+import/gm,
+  /import\s+(['"](.*?)['"])/g,
+  /import\s+([a-zA-Z0-9_.]+);/g,
+  /#include\s+["<](.*?)[">]/g,
+];
 
-  if (normalizedAbsolutePath.startsWith(`${normalizedRepoPath}/`)) {
-    return normalizedAbsolutePath.slice(normalizedRepoPath.length + 1);
-  }
-
-  return normalizedAbsolutePath;
-}
-
-
-export async function extractImports(repoPath:string) 
-{
-  const project = new Project({
-    skipAddingFilesFromTsConfig:true
-  });
-
+export async function extractImports(repoPath: string) {
   const files = await scannerRepository(repoPath);
+  const dependencyMap: any[] = [];
 
   for (const file of files) {
-    project.addSourceFileAtPath(file.absolutePath);
-  }
+    const content = fs.readFileSync(file.absolutePath, "utf-8");
+    const resolvedImports = new Set<string>();
 
-  const sourceFile = project.getSourceFiles();
+    for (const regex of IMPORT_REGEXES) {
+      const re = new RegExp(regex);
+      let match;
+      while ((match = re.exec(content)) !== null) {
+        const importVal = match[1] || match[2];
+        if (!importVal) continue;
 
-  const dependencyMap = [];
+        let resolvedPath = resolveImportPath(file.absolutePath, importVal, repoPath);
 
-  for(const file of sourceFile){
-    const imports = file.getImportDeclarations();
+        // Python/Java heuristic
+        if (!resolvedPath && !importVal.startsWith(".")) {
+          const asPath = importVal.replace(/\./g, "/");
+          const absoluteAsPath = path.resolve(repoPath, asPath);
+          for (const ext of [".py", ".java"]) {
+              if (fs.existsSync(absoluteAsPath + ext) && fs.statSync(absoluteAsPath + ext).isFile()) {
+                  resolvedPath = path.relative(repoPath, absoluteAsPath + ext);
+                  break;
+              }
+          }
+        }
 
-    const resolvedImports = [];
-
-    for(const imp of imports) {
-    
-      const importVal = imp.getModuleSpecifierValue();
-
-      const resolvedPath = resolveImportPath(file.getFilePath(),importVal, repoPath)
-
-      if(resolvedPath){
-        resolvedImports.push(resolvedPath);
+        if (resolvedPath) {
+          resolvedImports.add(resolvedPath);
+        } else {
+          // If we couldn't resolve it to a local file, just add the raw import name (external dependency)
+          resolvedImports.add(importVal);
+        }
       }
     }
 
     dependencyMap.push({
-      file: path.relative(repoPath, file.getFilePath()),
-      
-      imports: resolvedImports
-    })
+      file: file.relativePath,
+      imports: Array.from(resolvedImports)
+    });
   }
 
   return dependencyMap;
-  
 }

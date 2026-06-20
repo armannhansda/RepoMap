@@ -1,101 +1,58 @@
-/*
-    Version 1 Strategy
-
-We'll support:
-
-function login() {
-  validateUser();
-  generateJWT();
-}
-
-and
-
-const login = () => {
-  validateUser();
-}
-
-We will NOT support:
-
-auth.validateUser()
-obj.method()
-this.login()
-
-yet.
-
-*/
-
-import {Project, SyntaxKind} from "ts-morph";
-import path from "path";
+import fs from "fs";
 import { scannerRepository } from "./scanner.ts";
+import { extractFunctions } from "./functionExtractor.ts";
 
-export async function extractCalls(
-  repoPath: string
-){
+const CALL_REGEX = /\b([a-zA-Z0-9_]+)\s*\(/g;
 
-  const project = new Project({
-    skipAddingFilesFromTsConfig:true
-  })
-
-  const files = await scannerRepository(repoPath);
-
-  for (const file of files) {
-    project.addSourceFileAtPath(file.absolutePath);
-  }
-
-  const sourceFiles = project.getSourceFiles();
-  const calls: any[] =[];
-
-  for(const file of sourceFiles){
-    const relativePath = path.relative(repoPath, file.getFilePath());
+export async function extractCalls(repoPath: string, functions?: any[]) {
+    if (!functions) {
+        functions = await extractFunctions(repoPath);
+    }
     
-    // normal function
-    for(const fn of file.getFunctions()){
-      const caller = fn.getName();
-
-      if(!caller) continue;
-
-      const callExpressions = fn.getDescendantsOfKind(SyntaxKind.CallExpression)
-
-      for(const call of callExpressions){
-        const expression = call.getExpression();
-
-        if(expression.getKindName() === "Identifier"){
-          calls.push({
-            caller,
-            callee:expression.getText(),
-            file:relativePath,
-          })
-        }
-      }
+    const files = await scannerRepository(repoPath);
+    const calls: any[] = [];
+    
+    const fileFunctions = new Map<string, any[]>();
+    for (const fn of functions) {
+        if (!fileFunctions.has(fn.file)) fileFunctions.set(fn.file, []);
+        fileFunctions.get(fn.file)!.push(fn);
     }
 
-    // Arrow Function
-    for(const variable of file.getVariableDeclarations()){
-      const initializer = variable.getInitializer();
-
-      if(initializer?.getKindName() !== "ArrowFunction"){
-        continue;
-      }
-
-      const caller = variable.getName();
-
-      const callExpressions = initializer.getDescendantsOfKind(
-        SyntaxKind.CallExpression
-      )
-
-      for(const call of callExpressions){
-        const expression = call.getExpression();
-
-        if(expression.getKindName() === "Identifier")
-        {
-          calls.push({
-            caller,
-            callee:expression.getText(),
-            file: relativePath,
-          })
+    for (const file of files) {
+        const content = fs.readFileSync(file.absolutePath, "utf-8");
+        const fnsInFile = fileFunctions.get(file.relativePath) || [];
+        
+        const lines = content.split("\n");
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const lineNumber = i + 1;
+            
+            if (line.trim().startsWith("//") || line.trim().startsWith("#")) continue;
+            
+            let match;
+            const re = new RegExp(CALL_REGEX);
+            while ((match = re.exec(line)) !== null) {
+                const callee = match[1];
+                if (["if", "for", "while", "switch", "catch", "return", "function", "def", "func", "fn", "class"].includes(callee)) continue;
+                
+                let caller = "global";
+                for (const fn of fnsInFile) {
+                    if (lineNumber >= fn.line && lineNumber <= fn.endLine) {
+                        caller = fn.name;
+                        break;
+                    }
+                }
+                
+                if (caller !== "global") {
+                    calls.push({
+                        caller,
+                        callee,
+                        file: file.relativePath
+                    });
+                }
+            }
         }
-      }
     }
-  }
-  return calls;
+    return calls;
 }

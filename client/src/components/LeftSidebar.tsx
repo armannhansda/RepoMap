@@ -109,7 +109,7 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
   };
 
   return (
-    <div className="w-64 border-r border-border-subtle bg-bg-base flex flex-col h-full text-sm">
+    <div className="w-full border-r border-border-subtle bg-bg-base flex flex-col h-full text-sm">
       {/* Header */}
       <div className="p-4 border-b border-border-subtle flex items-center gap-3">
         <div className="w-8 h-8 rounded-md bg-surface-active border border-border-subtle flex items-center justify-center">

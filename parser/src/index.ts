@@ -20,7 +20,7 @@ async function main() {
 
   const functions = await extractFunctions(repoPath);
   
-  const calls = await extractCalls(repoPath);
+  const calls = await extractCalls(repoPath, functions);
 
   const graph = buildGraph(dependencies, functions, calls);
 

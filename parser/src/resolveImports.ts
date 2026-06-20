@@ -4,10 +4,8 @@ import path from "path"
 
 
 const extension = [
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx"
+  ".ts", ".tsx", ".js", ".jsx",
+  ".py", ".go", ".java", ".cpp", ".c", ".h", ".hpp", ".rs", ".rb", ".php", ".cs", ".swift", ".kt"
 ];
 
 export function resolveImportPath(

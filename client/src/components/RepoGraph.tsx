@@ -3,8 +3,12 @@
 import { Background, Controls, MiniMap, ReactFlow, MarkerType, useReactFlow, useNodesState, useEdgesState } from "reactflow";
 import "reactflow/dist/style.css";
 import { getLayoutedElements } from "@/utils/layoutGragh";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import CustomNode from "./CustomNode";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
+import { getFileContent } from "@/services/api";
 
 const nodeTypes = {
   custom: CustomNode,
@@ -12,6 +16,7 @@ const nodeTypes = {
 
 interface Props {
   graph: any;
+  repoId: string;
   onNodeSelect: (node: any) => void;
   selectedNodeId?: string;
 }
@@ -29,7 +34,7 @@ function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
   return null;
 }
 
-export default function RepoGraph({ graph, onNodeSelect, selectedNodeId }: Props) {
+export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -95,13 +100,13 @@ export default function RepoGraph({ graph, onNodeSelect, selectedNodeId }: Props
       type: 'smoothstep',
       animated: edge.type === 'calls',
       style: {
-        stroke: edge.type === 'calls' ? '#4f46e5' : edge.type === 'contains' ? '#334155' : '#64748b',
+        stroke: edge.type === 'calls' ? '#58a6ff' : edge.type === 'contains' ? '#30363d' : '#8b949e',
         strokeWidth: edge.type === 'calls' ? 1.5 : edge.type === 'contains' ? 1 : 1.5,
         strokeDasharray: edge.type === 'calls' ? '5,5' : edge.type === 'contains' ? '3,3' : 'none',
       },
       markerEnd: edge.type === 'contains' ? undefined : {
         type: MarkerType.ArrowClosed,
-        color: edge.type === 'calls' ? '#4f46e5' : '#64748b',
+        color: edge.type === 'calls' ? '#58a6ff' : '#8b949e',
       },
     }));
 
@@ -112,6 +117,76 @@ export default function RepoGraph({ graph, onNodeSelect, selectedNodeId }: Props
     })));
     setEdges(layouted.edges);
   }, [graph, selectedNodeId, setNodes, setEdges]);
+  const [hoveredNode, setHoveredNode] = useState<any>(null);
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [hoveredNodeContent, setHoveredNodeContent] = useState<string | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!hoveredNode) {
+      setHoveredNodeContent(null);
+      return;
+    }
+    const filePath = hoveredNode.path || hoveredNode.file;
+    if (filePath === "external") return;
+    
+    let isMounted = true;
+    const fetchContent = async () => {
+      const cachedFile = await getOpenedFile(repoId, filePath);
+      if (cachedFile && cachedFile.content && cachedFile.content.trim() !== "") {
+        if (isMounted) setHoveredNodeContent(cachedFile.content);
+        return;
+      }
+      try {
+        const file = await getFileContent(repoId, filePath);
+        if (file.error) return;
+        const fileContent = file.content ?? "";
+        if (isMounted && fileContent.trim() !== "") {
+          setHoveredNodeContent(fileContent);
+        }
+        if (fileContent.trim() !== "") {
+          await saveOpenedFile({
+            repoId,
+            path: filePath,
+            content: fileContent,
+            updatedAt: Date.now()
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    
+    const timer = setTimeout(fetchContent, 200); // 200ms debounce
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [hoveredNode, repoId]);
+
+  const getFunctionSnippet = () => {
+    if (!hoveredNodeContent) return "";
+    if (hoveredNode.type === "function") {
+      const lines = hoveredNodeContent.split("\n");
+      const start = Math.max(hoveredNode.line - 1, 0);
+      const end = hoveredNode.endLine ? hoveredNode.endLine : start + 10;
+      return lines.slice(start, end).join("\n");
+    }
+    const lines = hoveredNodeContent.split("\n");
+    return lines.slice(0, 15).join("\n");
+  }
+
+  const getLanguage = () => {
+    const filePath = hoveredNode?.path || hoveredNode?.file || "";
+    if (filePath.endsWith('.py')) return 'python';
+    if (filePath.endsWith('.go')) return 'go';
+    if (filePath.endsWith('.java')) return 'java';
+    if (filePath.endsWith('.cpp') || filePath.endsWith('.c')) return 'cpp';
+    if (filePath.endsWith('.rs')) return 'rust';
+    return 'typescript';
+  }
+
+  const [isDragging, setIsDragging] = useState(false);
 
   return (
     <div className="w-full h-full relative bg-bg-base">
@@ -123,16 +198,112 @@ export default function RepoGraph({ graph, onNodeSelect, selectedNodeId }: Props
         nodeTypes={nodeTypes}
         fitView
         onNodeClick={(_, node) => onNodeSelect(node)}
+        onNodeDragStart={() => {
+          setIsDragging(true);
+          setHoveredNode(null);
+        }}
+        onNodeDragStop={() => {
+          setIsDragging(false);
+        }}
+        onNodeMouseEnter={(e, node) => {
+          if (!isDragging) {
+            if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+            setHoveredNode(node.data);
+            setHoverPosition({ x: e.clientX, y: e.clientY });
+          }
+        }}
+        onNodeMouseLeave={() => {
+          hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredNode(null);
+          }, 200);
+        }}
         proOptions={{ hideAttribution: true }}
       >
         <FitViewOnUpdate nodes={nodes} />
-        <Background color="#2d3748" gap={16} size={1} />
+        <Background color="#30363d" gap={16} size={1} />
         <Controls className="!bg-surface !border-border-subtle !fill-text-main [&>button]:!border-border-subtle [&>button]:!bg-surface [&>button]:hover:!bg-surface-hover" />
         <MiniMap
           className="!bg-surface !border-border-subtle"
           maskColor="rgba(15, 17, 26, 0.7)"
           nodeColor="#4f46e5"
         />
+
+        {/* Hover Tooltip */}
+        {hoveredNode && !isDragging && (
+          <div 
+            className="fixed z-50 bg-surface border border-border-subtle rounded-lg shadow-2xl p-3 w-72 transition-opacity"
+            style={{ left: hoverPosition.x + 15, top: hoverPosition.y + 15 }}
+            onMouseEnter={() => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+            }}
+            onMouseLeave={() => {
+              setHoveredNode(null);
+            }}
+          >
+            <div className="font-semibold text-text-main mb-1 truncate">{hoveredNode.label}</div>
+            <div className="text-[10px] text-text-muted mb-3 font-mono truncate pb-2 border-b border-border-subtle">
+              {hoveredNode.path || hoveredNode.file}
+            </div>
+            
+            <div className="flex flex-col gap-1.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-text-muted">Type</span>
+                <span className="text-text-main capitalize font-medium px-1.5 py-0.5 bg-surface-hover rounded text-[10px]">
+                  {hoveredNode.functionType || hoveredNode.type}
+                </span>
+              </div>
+              
+              {hoveredNode.type === "file" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Imports</span>
+                    <span className="text-text-main font-mono">{hoveredNode.imports?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Functions</span>
+                    <span className="text-text-main font-mono">{hoveredNode.functions?.length || 0}</span>
+                  </div>
+                </>
+              )}
+              
+              {hoveredNode.type === "function" && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Calls</span>
+                    <span className="text-text-main font-mono">{hoveredNode.calls?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Called By</span>
+                    <span className="text-text-main font-mono">{hoveredNode.calledBy?.length || 0}</span>
+                  </div>
+                  {hoveredNode.line && (
+                    <div className="flex justify-between items-center mt-1 pt-1 border-t border-border-subtle">
+                      <span className="text-text-muted">Lines</span>
+                      <span className="text-text-main font-mono text-[10px] bg-surface-active px-1 rounded">
+                        {hoveredNode.line} - {hoveredNode.endLine || '?'}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {hoveredNodeContent && (
+              <div className="mt-3 border-t border-border-subtle pt-2">
+                <span className="text-[10px] text-text-muted uppercase tracking-wider mb-1 block">Preview</span>
+                <div className="rounded-md overflow-hidden text-[9px] max-h-[150px] overflow-y-auto border border-border-subtle bg-[#0a0a0a]">
+                  <SyntaxHighlighter
+                    language={getLanguage()}
+                    style={oneDark}
+                    customStyle={{ margin: 0, padding: '0.5rem', background: 'transparent' }}
+                  >
+                    {getFunctionSnippet()}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="absolute top-4 right-4 bg-surface border border-border-subtle rounded-lg p-3 shadow-lg z-10 w-56 text-sm">

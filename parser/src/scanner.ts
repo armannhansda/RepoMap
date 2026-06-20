@@ -6,7 +6,7 @@ import path from "node:path";
 export async function scannerRepository(repoPath:string) {
 
   const matches = await glob (
-    "**/*.{ts,tsx,js,jsx}",
+    "**/*.{ts,tsx,js,jsx,py,go,java,cpp,c,h,hpp,rs,rb,php,cs,swift,kt}",
     {
       cwd:repoPath,
       absolute:true,

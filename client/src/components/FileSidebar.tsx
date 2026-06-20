@@ -93,7 +93,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
   const commitsCount = Math.floor(Math.random() * 50) + 1; // Mock data
 
   return (
-    <div className="w-[400px] border-l border-border-subtle bg-bg-surface flex flex-col h-full text-sm text-text-main shadow-2xl overflow-hidden shrink-0">
+    <div className="w-full border-l border-border-subtle bg-bg-surface flex flex-col h-full text-sm text-text-main shadow-2xl overflow-hidden shrink-0">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-base">
         <div className="flex items-center gap-3">
