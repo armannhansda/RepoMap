@@ -1,21 +1,20 @@
 import dagre from "dagre";
 
-const dagreGraph =
-  new dagre.graphlib.Graph();
-
-dagreGraph.setDefaultEdgeLabel(
-  () => ({})
-);
-
-const nodeWidth = 220;
-const nodeHeight = 60;
+const nodeWidth = 240;
+const nodeHeight = 80;
 
 export function getLayoutedElements(
   nodes: any[],
-  edges: any[]
+  edges: any[],
+  isSubgraph: boolean = false
 ) {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
   dagreGraph.setGraph({
     rankdir: "LR",
+    nodesep: isSubgraph ? 40 : 80,
+    ranksep: isSubgraph ? 40 : 250,
   });
 
   // Add nodes

@@ -1,33 +1,31 @@
 import { getFileContent } from "@/services/api";
-import { useEffect, useRef, useState, useMemo } from "react";
-
+import { useEffect, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { X, FileText, Sparkles, FolderOpen, Copy, ChevronDown, ChevronRight, Code } from "lucide-react";
 
 interface Props {
   node: any;
   repoId: string;
+  onClose?: () => void;
 }
 
-export default function FileSidebar({ node, repoId }: Props) {
+export default function FileSidebar({ node, repoId, onClose }: Props) {
   const [content, setContent] = useState("");
-  const [selectedFunction, setSelectedFunction] = useState<any>();
-  const filePath = node?.data.path ?? node?.data.file ?? "";
+  const [activeTab, setActiveTab] = useState("Details");
+  const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
+
+  const filePath = node?.path ?? node?.file ?? "";
 
   useEffect(() => {
     async function load() {
-      const currentKey = `${repoId}:${filePath}`;
-
       if (!node || !repoId || !filePath) {
         setContent("");
         return;
       }
-
       const file = await getFileContent(repoId, filePath);
       setContent(file.content ?? "");
     }
-
     load();
   }, [node, repoId, filePath]);
 
@@ -35,296 +33,261 @@ export default function FileSidebar({ node, repoId }: Props) {
 
   function getFunctionSource(content: string, functionLine: number, functionEndLine?: number) {
     const lines = content.split("\n");
-
     const start = Math.max(functionLine - 1, 0);
-
     if (functionEndLine) {
       return lines.slice(start, functionEndLine).join("\n");
     }
-
-    let braceCount = 0;
-    let started = false;
-    const result: string[] = [];
-
-    for (let i = start; i < lines.length; i++) {
-      const line = lines[i];
-
-      result.push(line);
-
-      for (const char of line) {
-        if (char === "{") {
-          braceCount++;
-          started = true;
-        }
-
-        if (char === "}") {
-          braceCount--;
-        }
-      }
-
-      if (started && braceCount === 0) {
-        break;
-      }
-    }
-
-    return result.join("\n");
+    return lines.slice(start, start + 10).join("\n") + "\n// ...";
   }
 
-  const functionSource = selectedFunction
-    ? getFunctionSource(content, selectedFunction.line, selectedFunction.endLine)
-    : node?.data?.line
-      ? getFunctionSource(content, node.data.line, node.data.endLine)
-      : "";
-
-  const functionLookup = useMemo(() => {
-    const map = new Map<string, any>();
-
-    node?.data.functions?.forEach((fn: any) => {
-      map.set(fn.name, fn);
+  const toggleFunction = (name: string) => {
+    setExpandedFunctions(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
     });
+  };
 
-    return map;
-  }, [node]);
+  const dependenciesCount = node.imports?.length || 0;
+  const dependentsCount = node.importedBy?.length || 0;
+  const locCount = content ? content.split("\n").length : 0;
+  const commitsCount = Math.floor(Math.random() * 50) + 1; // Mock data
 
   return (
-    <div className="w-96 border-l p-4 overflow-auto">
-      <h2 className="font-bont text-xl mb-4">label: {node.data.label}</h2>
-
-      <p className="mb-4">Path: {filePath || "No file path available"}</p>
-
-      <h3 className="font-semibold">imports</h3>
-
-      <ul className="mb-4">
-        {node.data.imports?.map((imp: string, i: number) => (
-          <li key={`${imp}-${i}`}>{imp}</li>
-        ))}
-      </ul>
-
-      <h3 className="font-semibold">imported By</h3>
-
-      <ul className="mb-4">
-        {node.data.importedBy?.map((imp: string, i: number) => (
-          <li key={`${imp}-${i}`}>{imp}</li>
-        ))}
-      </ul>
-
-      {node.data.functionType && (
-        <div className="mt-6">
-          <h3 className="font-bold">Function details</h3>
-
-          <p>Name: {node.data.label}</p>
-
-          <p>line: {node.data.line}</p>
-
-          <p>Type: {node.data.functionType}</p>
-
-          <div className="mt-4">
-            <h4 className="font-semibold">Calls:</h4>
-            {node.data.calls?.length ? (
-              <ul>
-                {node.data.calls.map((c: string, i: number) => (
-                  <li
-                    key={`${c}-${i}`}
-                    className="
-    cursor-pointer
-    text-blue-500
-  "
-                    onClick={() => {
-                      const target = functionLookup.get(c);
-
-                      if (target) {
-                        setSelectedFunction(target);
-                      }
-                    }}
-                  >
-                    {c}()
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>no calls</p>
-            )}
+    <div className="w-[400px] border-l border-border-subtle bg-bg-surface flex flex-col h-full text-sm text-text-main shadow-2xl overflow-hidden shrink-0">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-base">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-md bg-surface-active border border-border-subtle flex items-center justify-center">
+            <FileText className="w-4 h-4 text-brand" />
           </div>
-
-          <div className="mt-4">
-            <h4 className="font-semibold">Called By:</h4>
-            {node.data.calledBy?.length ? (
-              <ul>
-                {node.data.calledBy.map((c: string, i: number) => (
-                  <li
-                    key={`${c}-${i}`}
-                    className="
-    cursor-pointer
-    text-blue-500
-  "
-                    onClick={() => {
-                      const target = functionLookup.get(c);
-
-                      if (target) {
-                        setSelectedFunction(target);
-                      }
-                    }}
-                  >
-                    {c}()
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Not called</p>
-            )}
-          </div>
-          <div className="mt-4">
-            <h4 className="font-semibold">Source</h4>
-
-            <pre
-              className="
-                              bg-black
-                              text-white
-                              p-3
-                              rounded
-                              overflow-auto
-                              text-sm
-                              max-h-[300px]
-                            "
-            >
-              {functionSource}
-            </pre>
+          <div>
+            <h2 className="font-semibold text-text-main">File Details</h2>
+            <p className="text-xs text-text-muted">Selected Node</p>
           </div>
         </div>
-      )}
-
-      <div className="mt-6">
-        <h3 className="font-bold">Functions</h3>
-
-        {node.data.functions?.length ? (
-          <ul className="mt-2">
-            {node.data.functions.map((fn: any) => (
-              <li
-                key={`${fn.name}-${fn.line}`}
-                onClick={() => setSelectedFunction(fn)}
-                className="cursor-pointer py-1"
-              >
-                {fn.name}
-
-                {selectedFunction?.name === fn.name && (
-                  <>
-                    <div className="mt-2 ml-4">
-                      <h3 className="font-bold">Function details</h3>
-
-                      <p>Name: {selectedFunction.name}</p>
-
-                      <p>line: {selectedFunction.line}</p>
-
-                      <p>Type: {selectedFunction.type}</p>
-
-                      <div className="mt-4">
-                        <h4 className="font-semibold">Calls:</h4>
-
-                        {selectedFunction.calls?.length ? (
-                          <ul>
-                            {selectedFunction.calls.map(
-                              (c: string, i: number) => (
-                                <li
-                                  key={`${c}-${i}`}
-                                  className="
-    cursor-pointer
-    text-blue-500
-  "
-                                  onClick={() => {
-                                    const target = functionLookup.get(c);
-
-                                    if (target) {
-                                      setSelectedFunction(target);
-                                    }
-                                  }}
-                                >
-                                  {c}()
-                                </li>
-                              ),
-                            )}
-                          </ul>
-                        ) : (
-                          <p>no calls</p>
-                        )}
-                      </div>
-
-                      <div className="mt-4">
-                        <h4 className="font-semibold">Called By:</h4>
-
-                        {selectedFunction.calledBy?.length ? (
-                          <ul>
-                            {selectedFunction.calledBy.map(
-                              (c: string, i: number) => (
-                                <li
-                                  key={`${c}-${i}`}
-                                  className="
-    cursor-pointer
-    text-blue-500
-  "
-                                  onClick={() => {
-                                    const target = functionLookup.get(c);
-
-                                    if (target) {
-                                      setSelectedFunction(target);
-                                    }
-                                  }}
-                                >
-                                  {c}()
-                                </li>
-                              ),
-                            )}
-                          </ul>
-                        ) : (
-                          <p>Not called</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <h4 className="font-semibold">Source</h4>
-
-                      <pre
-                        className="
-                              bg-black
-                              text-white
-                              p-3
-                              rounded
-                              overflow-auto
-                              text-sm
-                              max-h-[300px]
-                            "
-                      >
-                        {functionSource}
-                      </pre>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No functions</p>
+        {onClose && (
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-main hover:bg-surface-hover rounded-md transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         )}
       </div>
 
-      <div className="mt-6">
-        <h3 className="font-bold">Source Preview</h3>
-
-        {filePath ? (
-          <pre
-            className="
-      bg-black
-      text-white
-      p-4
-      rounded
-      overflow-auto
-      text-sm
-      max-h-125
-    "
+      {/* Tabs */}
+      <div className="flex border-b border-border-subtle px-4 bg-bg-base shrink-0">
+        {["Details", "Source", "Graph"].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-3 border-b-2 font-medium transition-colors ${
+              activeTab === tab 
+                ? "border-brand text-text-main" 
+                : "border-transparent text-text-muted hover:text-text-main"
+            }`}
           >
-            {content}
-          </pre>
-        ) : (
-          <p>Select a file node to preview source.</p>
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-surface">
+        {activeTab === "Details" && (
+          <>
+        {/* AI Summary */}
+        <div className="bg-bg-base border border-border-subtle rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2 text-brand font-medium">
+            <Sparkles className="w-4 h-4" />
+            <span>AI Summary</span>
+          </div>
+          <p className="text-text-muted leading-relaxed text-xs">
+            This is the main component file. It relies on standard library tools to orchestrate application flow. High centrality suggests it is a critical node for the system.
+          </p>
+        </div>
+
+        {/* Title & Path */}
+        <div>
+          <h1 className="text-2xl font-bold mb-3">{node.label}</h1>
+          <div className="flex items-center justify-between bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-xs font-mono text-text-muted">
+            <div className="flex items-center gap-2 truncate">
+              <FolderOpen className="w-4 h-4" />
+              <span className="truncate">{filePath || node.label}</span>
+            </div>
+            <button className="p-1 hover:text-text-main transition-colors shrink-0 ml-2">
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        {node.type === "file" && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-bg-base border border-border-subtle rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-text-main">{locCount > 0 ? locCount : '-'}</div>
+              <div className="text-xs text-text-muted">Lines of Code (LOC)</div>
+            </div>
+            <div className="bg-bg-base border border-border-subtle rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-node-component">{dependenciesCount}</div>
+              <div className="text-xs text-text-muted">Dependencies</div>
+            </div>
+            <div className="bg-bg-base border border-border-subtle rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-orange-400">{dependentsCount}</div>
+              <div className="text-xs text-text-muted">Dependents</div>
+            </div>
+            <div className="bg-bg-base border border-border-subtle rounded-lg p-3 text-center">
+              <div className="text-xl font-bold text-text-main">{commitsCount}</div>
+              <div className="text-xs text-text-muted">Commits</div>
+            </div>
+          </div>
+        )}
+
+        {/* Function Node Details */}
+        {node.type === "function" && (
+          <div>
+            {node.calls?.length > 0 && (
+              <div className="mb-4 mt-3">
+                <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2">Calls</h4>
+                <ul className="space-y-1">
+                  {node.calls.map((c: string, i: number) => (
+                    <li key={i} className="text-xs font-mono text-text-main flex items-center gap-2">
+                      <span className="text-text-muted">→</span> {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {node.calledBy?.length > 0 && (
+              <div className="mb-4 mt-3">
+                <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2">Called By</h4>
+                <ul className="space-y-1">
+                  {node.calledBy.map((c: string, i: number) => (
+                    <li key={i} className="text-xs font-mono text-text-main flex items-center gap-2">
+                      <span className="text-text-muted">←</span> {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {node.line !== undefined && (
+              <div>
+                <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2 mt-3">Implementation Preview</h4>
+                <div className="rounded-md overflow-hidden text-[11px] max-h-[300px] overflow-y-auto border border-border-subtle">
+                  <SyntaxHighlighter
+                    language="typescript"
+                    style={oneDark}
+                    customStyle={{ margin: 0, padding: '1rem', background: '#0a0a0a' }}
+                  >
+                    {getFunctionSource(content, node.line, node.endLine)}
+                  </SyntaxHighlighter>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Functions Accordion */}
+        {node.functions && node.functions.length > 0 && (
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold text-text-main">Functions ({node.functions.length})</h3>
+            </div>
+            <div className="space-y-2">
+              {node.functions.map((fn: any) => {
+                const isExpanded = expandedFunctions.has(fn.name);
+                const source = getFunctionSource(content, fn.line, fn.endLine);
+                
+                return (
+                  <div key={fn.name} className="bg-bg-base border border-border-subtle rounded-lg overflow-hidden">
+                    <div 
+                      className="flex items-center justify-between p-3 cursor-pointer hover:bg-surface-hover transition-colors"
+                      onClick={() => toggleFunction(fn.name)}
+                    >
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <Code className="w-4 h-4 text-node-function" />
+                        <span className="font-semibold text-text-main">{fn.name}</span>
+                        {fn.calls?.length > 0 && (
+                          <span className="text-[10px] bg-node-function/20 text-node-function px-1.5 py-0.5 rounded ml-2">
+                            Calls ({fn.calls.length})
+                          </span>
+                        )}
+                      </div>
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-text-muted" /> : <ChevronRight className="w-4 h-4 text-text-muted" />}
+                    </div>
+                    
+                    {isExpanded && (
+                      <div className="p-4 pt-0 border-t border-border-subtle bg-bg-base/50">
+                        {fn.calls?.length > 0 && (
+                          <div className="mb-4 mt-3">
+                            <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2">Calls</h4>
+                            <ul className="space-y-1">
+                              {fn.calls.map((c: string, i: number) => (
+                                <li key={i} className="text-xs font-mono text-text-main flex items-center gap-2">
+                                  <span className="text-text-muted">→</span> {c}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {fn.calledBy?.length > 0 && (
+                          <div className="mb-4 mt-3">
+                            <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2">Called By</h4>
+                            <ul className="space-y-1">
+                              {fn.calledBy.map((c: string, i: number) => (
+                                <li key={i} className="text-xs font-mono text-text-main flex items-center gap-2">
+                                  <span className="text-text-muted">←</span> {c}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <h4 className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-2 mt-3">Implementation Preview</h4>
+                          <div className="rounded-md overflow-hidden text-[11px] max-h-[300px] overflow-y-auto border border-border-subtle">
+                            <SyntaxHighlighter
+                              language="typescript"
+                              style={oneDark}
+                              customStyle={{ margin: 0, padding: '1rem', background: '#0a0a0a' }}
+                            >
+                              {source}
+                            </SyntaxHighlighter>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+          </>
+        )}
+
+        {activeTab === "Source" && (
+          <div className="rounded-md overflow-hidden text-[11px] border border-border-subtle bg-bg-base">
+            {content ? (
+              <SyntaxHighlighter
+                language={filePath.endsWith('.css') ? 'css' : filePath.endsWith('.json') ? 'json' : filePath.endsWith('.html') ? 'html' : 'typescript'}
+                style={oneDark}
+                customStyle={{ margin: 0, padding: '1rem', background: '#0a0a0a' }}
+                showLineNumbers={true}
+              >
+                {content}
+              </SyntaxHighlighter>
+            ) : (
+              <div className="p-4 text-text-muted text-center italic">No source available.</div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "Graph" && (
+          <div className="flex flex-col items-center justify-center h-40 text-text-muted">
+            <Sparkles className="w-8 h-8 mb-2 opacity-50" />
+            <p>Graph view coming soon...</p>
+          </div>
         )}
       </div>
     </div>

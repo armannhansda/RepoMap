@@ -85,6 +85,24 @@ export function buildGraph(
       calleeId = matches[0];
     }
 
+    // If still no calleeId, it's an external or built-in function (like setIsMobile, useEffect)
+    // Create an external dummy node so it still shows up in the graph
+    if (!calleeId) {
+      calleeId = `external::${call.callee}`;
+      if (!functionLookup.has(calleeId)) {
+        functionLookup.set(calleeId, calleeId);
+        nodes.push({
+          id: calleeId,
+          label: call.callee,
+          file: "external",
+          type: "function",
+          functionType: "external",
+          calls: [],
+          calledBy: []
+        });
+      }
+    }
+
     if (!functionCalls.has(callerKey)) {
       functionCalls.set(callerKey, []);
     }
