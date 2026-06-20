@@ -5,7 +5,7 @@ interface LeftSidebarProps {
   nodes: any[];
   onNodeSelect: (nodeId?: string) => void;
   selectedNodeId?: string;
-  onNewAnalysis: () => void;
+  repoName: string;
 }
 
 type FileTree = {
@@ -16,7 +16,7 @@ type FileTree = {
   };
 };
 
-export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, onNewAnalysis }: LeftSidebarProps) {
+export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoName }: LeftSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["packages", "src"]));
 
   // Build a nested file tree from the flat nodes array
@@ -115,8 +115,8 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, onNew
         <div className="w-8 h-8 rounded-md bg-surface-active border border-border-subtle flex items-center justify-center">
           <Folder className="w-4 h-4 text-brand" />
         </div>
-        <div>
-          <h2 className="font-semibold text-text-main">Project Explorer</h2>
+        <div className="overflow-hidden">
+          <h2 className="font-semibold text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
           <p className="text-xs text-text-muted">main branch</p>
         </div>
       </div>
@@ -139,20 +139,10 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, onNew
           </div>
         </div>
 
-        {/* Database Section */}
-        <div className="flex items-center gap-2 px-4 py-2 text-text-muted hover:text-text-main hover:bg-surface-hover cursor-pointer transition-colors">
-          <Database className="w-4 h-4" />
-          <span>Database</span>
-        </div>
 
-        {/* Routes Section */}
-        <div className="flex items-center gap-2 px-4 py-2 text-text-muted hover:text-text-main hover:bg-surface-hover cursor-pointer transition-colors">
-          <Route className="w-4 h-4" />
-          <span>Routes</span>
-        </div>
 
         {/* Search Section */}
-        <div className="mt-4">
+        {/* <div className="mt-4">
           <div className="flex items-center gap-2 px-4 py-2 text-text-muted">
             <Search className="w-4 h-4" />
             <span>Search</span>
@@ -164,22 +154,16 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, onNew
               className="w-full bg-surface border border-border-subtle rounded py-1 px-2 text-text-main placeholder-text-muted focus:outline-none focus:border-border-focus transition-colors text-xs"
             />
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border-subtle flex flex-col gap-4">
+      {/* <div className="p-4 border-t border-border-subtle flex flex-col gap-4">
         <div className="flex justify-between items-center text-text-muted">
           <Settings className="w-4 h-4 hover:text-text-main cursor-pointer" />
           <HelpCircle className="w-4 h-4 hover:text-text-main cursor-pointer" />
         </div>
-        <button 
-          onClick={onNewAnalysis}
-          className="w-full py-1.5 border border-border-subtle rounded hover:bg-surface-active text-text-main transition-colors font-medium"
-        >
-          New Analysis
-        </button>
-      </div>
+      </div> */}
     </div>
   );
 }

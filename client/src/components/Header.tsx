@@ -1,13 +1,14 @@
-import { Moon, Search, Box, CornerDownLeft, User } from "lucide-react";
+import { Box, Search, CornerDownLeft } from "lucide-react";
 
 interface HeaderProps {
   repoUrl: string;
   setRepoUrl: (url: string) => void;
   onAnalyze: () => void;
+  onNewAnalysis: () => void;
   loading: boolean;
 }
 
-export default function Header({ repoUrl, setRepoUrl, onAnalyze, loading }: HeaderProps) {
+export default function Header({ repoUrl, setRepoUrl, onAnalyze, onNewAnalysis, loading }: HeaderProps) {
   return (
     <header className="flex items-center justify-between px-6 py-3 border-b border-border-subtle bg-bg-base text-sm">
       {/* Left side: Logo & Nav */}
@@ -16,12 +17,6 @@ export default function Header({ repoUrl, setRepoUrl, onAnalyze, loading }: Head
           <Box className="w-5 h-5 text-brand" />
           <span>RepoMap</span>
         </div>
-        
-        <nav className="flex gap-6 text-text-muted font-medium">
-          <button className="text-text-main border-b-2 border-brand pb-1 -mb-1">Explore</button>
-          <button className="hover:text-text-main transition-colors">Docs</button>
-          <button className="hover:text-text-main transition-colors">History</button>
-        </nav>
       </div>
 
       {/* Middle: Search Bar */}
@@ -36,11 +31,13 @@ export default function Header({ repoUrl, setRepoUrl, onAnalyze, loading }: Head
             onKeyDown={(e) => {
               if (e.key === "Enter") onAnalyze();
             }}
-            className="w-full bg-surface border border-border-subtle rounded-lg py-1.5 pl-10 pr-10 text-text-main placeholder-text-muted focus:outline-none focus:border-border-focus transition-colors"
+            disabled={loading}
+            className="w-full bg-surface border border-border-subtle rounded-lg py-1.5 pl-10 pr-10 text-text-main placeholder-text-muted focus:outline-none focus:border-border-focus transition-colors disabled:opacity-50"
           />
           <button 
             onClick={onAnalyze}
-            className="absolute right-3 p-0.5 text-text-muted hover:text-text-main"
+            disabled={loading}
+            className="absolute right-3 p-0.5 text-text-muted hover:text-text-main disabled:opacity-50"
           >
             <CornerDownLeft className="w-3.5 h-3.5" />
           </button>
@@ -49,22 +46,19 @@ export default function Header({ repoUrl, setRepoUrl, onAnalyze, loading }: Head
 
       {/* Right side: Actions */}
       <div className="flex items-center gap-4">
-        <button className="p-2 text-text-muted hover:text-text-main rounded-md hover:bg-surface-hover transition-colors">
-          <Moon className="w-4 h-4" />
-        </button>
-        <button className="text-text-main font-medium hover:text-brand transition-colors">
-          Sign In
-        </button>
         <button 
+          onClick={onNewAnalysis}
+          className="text-text-main font-medium hover:text-brand transition-colors"
+        >
+          New Analysis
+        </button>
+        {/* <button 
           onClick={onAnalyze}
-          disabled={loading}
+          disabled={loading || !repoUrl}
           className="bg-brand hover:bg-brand-hover text-white px-4 py-1.5 rounded-md font-medium transition-colors disabled:opacity-50"
         >
-          {loading ? "Analyzing..." : "Analyze"}
-        </button>
-        <div className="w-8 h-8 rounded-full bg-surface-active flex items-center justify-center border border-border-subtle overflow-hidden">
-          <User className="w-5 h-5 text-text-muted" />
-        </div>
+          Analyze
+        </button> */}
       </div>
     </header>
   );

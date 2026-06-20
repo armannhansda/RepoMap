@@ -21,7 +21,7 @@ export async function analyzeRepo(repoUrl:string) {
 export async function getFileContent(repoId:string, filePath:string) {
 
   const response = await fetch (
-    `http://localhost:5001/api/repo/file?repoId=${repoId}&filePath=${filePath}`
+    `http://localhost:5001/api/repo/file?repoId=${encodeURIComponent(repoId)}&filePath=${encodeURIComponent(filePath)}`
   )
 
   return response.json();

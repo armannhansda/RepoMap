@@ -1,18 +1,29 @@
 import { type Request, type Response } from "express"
-import fs from"fs"
+import fs from "fs"
 import path from "path"
-import { getRepository } from "../store/repoRegistry.ts"
+import { getRepository, saveRepository } from "../store/repoRegistry.ts"
+import { cloneRepository } from "../services/repoclone.ts"
 
 
-export function getFileContent(req: Request, res: Response) {
+export async function getFileContent(req: Request, res: Response) {
   const { repoId, filePath } = req.query;
 
-  const repoPath = getRepository(repoId as string);
+  let repoPath = getRepository(repoId as string);
 
   if (!repoPath) {
-    return res.status(404).json({
-      error: "Repository not found"
-    });
+    // If the server restarted, the memory map is empty. Since the frontend passes the repoUrl as the repoId,
+    // we can seamlessly re-clone the repository on-the-fly so the user doesn't experience any errors!
+    console.log(`Repository not in memory. Attempting to re-clone ${repoId}...`);
+    try {
+      const clonedRepo = await cloneRepository(repoId as string);
+      repoPath = clonedRepo.repoPath;
+      saveRepository(repoId as string, repoPath);
+    } catch (err) {
+      console.error("Failed to re-clone repository:", err);
+      return res.status(404).json({
+        error: "Repository not found"
+      });
+    }
   }
 
   if (typeof filePath !== "string") {
@@ -30,6 +41,8 @@ export function getFileContent(req: Request, res: Response) {
       error: "Access denied: file path is outside the repository bounds"
     });
   }
+
+  console.log("DEBUG getFileContent:", { repoPath, resolvedRepoPath, filePath, fullPath });
 
   try {
     const content = fs.readFileSync(fullPath, "utf-8");

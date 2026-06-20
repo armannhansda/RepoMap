@@ -7,6 +7,9 @@ import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 
+import { getRepository, saveRepository } from "@/lib/db/repositories";
+import { getGraph, saveGraph } from "@/lib/db/graph";
+
 export default function Home(){
   const [repoUrl, setRepoUrl] = useState("");
   const [graph, setGraph] = useState<any>(null);
@@ -18,9 +21,45 @@ export default function Home(){
     if (!repoUrl) return;
     try {
       setLoading(true);
+      
+      // 1. Check IndexedDB
+      const existingRepo = await getRepository(repoUrl);
+      if (existingRepo) {
+        const existingGraph = await getGraph(repoUrl);
+        if (existingGraph) {
+          // Render instantly from cache
+          setGraph({ nodes: existingGraph.nodes, edges: existingGraph.edges });
+          setRepoId(existingRepo.id);
+          setSelectedNodeId(existingRepo.lastOpenedFile);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Call backend if not cached
       const result = await analyzeRepo(repoUrl);
+      
+      // 3. Save new data to IndexedDB
+      const newRepo = {
+        id: repoUrl,
+        repoUrl: repoUrl,
+        repoName: repoUrl.split("/").pop()?.replace(".git", "") || repoUrl,
+        branch: "main",
+        commitHash: "unknown",
+        analyzedAt: Date.now(),
+        fileTree: [],
+      };
+      
+      await saveRepository(newRepo);
+      await saveGraph({
+        repoId: repoUrl,
+        nodes: result.graph.nodes,
+        edges: result.graph.edges
+      });
+
+      // 4. Render UI
       setGraph(result.graph);
-      setRepoId(result.repoId);
+      setRepoId(result.repoId); // which is now also repoUrl
       setSelectedNodeId(undefined);
     } catch (error) {
       console.error(error);
@@ -37,6 +76,11 @@ export default function Home(){
         repoUrl={repoUrl} 
         setRepoUrl={setRepoUrl} 
         onAnalyze={handleAnalyze} 
+        onNewAnalysis={() => {
+          setGraph(null);
+          setRepoUrl("");
+          setSelectedNodeId(undefined);
+        }}
         loading={loading} 
       />
       
@@ -46,15 +90,19 @@ export default function Home(){
             nodes={graph.nodes} 
             selectedNodeId={selectedNodeId}
             onNodeSelect={setSelectedNodeId}
-            onNewAnalysis={() => {
-              setGraph(null);
-              setRepoUrl("");
-              setSelectedNodeId(undefined);
-            }}
+            repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
           />
         )}
         
         <main className="flex-1 relative bg-surface overflow-hidden">
+          {loading && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg-base/80 backdrop-blur-sm text-text-main">
+              <div className="w-12 h-12 mb-6 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xl font-medium text-brand">Analyzing Repository...</p>
+              <p className="text-sm mt-2 text-text-muted">This may take a few moments depending on the repository size.</p>
+            </div>
+          )}
+          
           {!graph ? (
             <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
               <div className="w-16 h-16 mb-6 opacity-20 border-4 border-dashed border-text-muted rounded-full animate-[spin_3s_linear_infinite]"></div>

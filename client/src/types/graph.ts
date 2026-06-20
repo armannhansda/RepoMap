@@ -1,14 +1,7 @@
-export interface GraphNode{
-  id: string;
-  label: string;
-}
+import { Node, Edge } from "@xyflow/react";
 
-export interface GraphEdge{
-  source: string;
-  target: string;
-}
-
-export interface GraphData{
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+export interface GraphData {
+  repoId: string;
+  nodes: Node[];
+  edges: Edge[];
 }

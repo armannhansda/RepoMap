@@ -1,4 +1,5 @@
 import { getFileContent } from "@/services/api";
+import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
 import { useEffect, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -23,8 +24,45 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
         setContent("");
         return;
       }
-      const file = await getFileContent(repoId, filePath);
-      setContent(file.content ?? "");
+
+      if (filePath === "external") {
+        setContent("// This is an external dependency.\n// Source code is not available in this repository.");
+        return;
+      }
+      
+      // 1. Check IndexedDB cache
+      const cachedFile = await getOpenedFile(repoId, filePath);
+      if (cachedFile && cachedFile.content && cachedFile.content.trim() !== "") {
+        setContent(cachedFile.content);
+        return;
+      }
+
+      // 2. Call backend if not cached
+      try {
+        const file = await getFileContent(repoId, filePath);
+        
+        if (file.error) {
+          console.error("Backend error:", file.error);
+          setContent("");
+          return;
+        }
+
+        const fileContent = file.content ?? "";
+        setContent(fileContent);
+
+        // 3. Save to IndexedDB cache
+        if (fileContent.trim() !== "") {
+          await saveOpenedFile({
+            repoId,
+            path: filePath,
+            content: fileContent,
+            updatedAt: Date.now()
+          });
+        }
+      } catch (e) {
+        console.error("Failed to fetch file:", e);
+        setContent("");
+      }
     }
     load();
   }, [node, repoId, filePath]);
@@ -95,7 +133,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
         {activeTab === "Details" && (
           <>
         {/* AI Summary */}
-        <div className="bg-bg-base border border-border-subtle rounded-lg p-4">
+        {/* <div className="bg-bg-base border border-border-subtle rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2 text-brand font-medium">
             <Sparkles className="w-4 h-4" />
             <span>AI Summary</span>
@@ -103,7 +141,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
           <p className="text-text-muted leading-relaxed text-xs">
             This is the main component file. It relies on standard library tools to orchestrate application flow. High centrality suggests it is a critical node for the system.
           </p>
-        </div>
+        </div> */}
 
         {/* Title & Path */}
         <div>

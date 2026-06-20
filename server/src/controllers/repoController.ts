@@ -29,7 +29,7 @@ export async function analyzeRepo(
 
     const clonedRepo = await cloneRepository(repoUrl);
 
-    const repoId = randomUUID()
+    const repoId = repoUrl;
 
     saveRepository(repoId, clonedRepo.repoPath);
 
