@@ -183,8 +183,9 @@ export function buildGraph(
         if (!fileFunction.has(node.file)) fileFunction.set(node.file, []);
         fileFunction.get(node.file)?.push({
           name: node.label,
-          Type: node.functionType,
+          type: node.functionType,
           line: node.line,
+          endLine: node.endLine,
           calls: node.calls,
           calledBy: node.calledBy,
         });

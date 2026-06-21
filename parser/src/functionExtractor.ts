@@ -31,6 +31,7 @@ function findEndLine(content: string, startMatchIndex: number, isPython: boolean
     } else {
         let braceCount = 0;
         let parenCount = 0;
+        let angleCount = 0;
         let foundFirstBrace = false;
         let charIndex = startMatchIndex;
         
@@ -77,15 +78,19 @@ function findEndLine(content: string, startMatchIndex: number, isPython: boolean
                 }
             }
             
-            // Handle parentheses and braces
+            // Handle parentheses, angle brackets, and braces
             if (!inSingleQuote && !inDoubleQuote && !inTemplateLiteral && !inLineComment && !inBlockComment) {
                 if (char === '(') {
                     parenCount++;
                 } else if (char === ')') {
                     parenCount = Math.max(0, parenCount - 1);
+                } else if (char === '<') {
+                    angleCount++;
+                } else if (char === '>') {
+                    angleCount = Math.max(0, angleCount - 1);
                 } else if (char === '{') {
                     if (!foundFirstBrace) {
-                        if (parenCount === 0) {
+                        if (parenCount === 0 && angleCount === 0) {
                             braceCount++;
                             foundFirstBrace = true;
                         }
@@ -99,6 +104,8 @@ function findEndLine(content: string, startMatchIndex: number, isPython: boolean
                             break;
                         }
                     }
+                } else if (char === ';' && !foundFirstBrace && parenCount === 0 && angleCount === 0) {
+                    break;
                 }
             }
             
