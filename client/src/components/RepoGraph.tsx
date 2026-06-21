@@ -223,9 +223,25 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
   }
 
   const [isDragging, setIsDragging] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   return (
-    <div className="w-full h-full relative bg-bg-base">
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setMousePos({ x: -1000, y: -1000 })}
+      className="w-full h-full relative bg-bg-base"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -256,7 +272,21 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         proOptions={{ hideAttribution: true }}
       >
         <FitViewOnUpdate nodes={nodes} />
+        
+        {/* Base Faint Background */}
         <Background color="rgba(255, 255, 255, 0.1)" gap={16} size={1} />
+        
+        {/* Highlighted Bright Background with mask */}
+        <div 
+          className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            maskImage: `radial-gradient(circle 200px at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 100%)`,
+            WebkitMaskImage: `radial-gradient(circle 200px at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 100%)`
+          }}
+        >
+          <Background color="rgba(255, 255, 255, 0.4)" gap={16} size={1} />
+        </div>
+
         <Controls className="!bg-black/40 !backdrop-blur-md !border-white/10 !fill-white [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:hover:!bg-white/10" />
         <MiniMap
           className="!bg-black/40 !backdrop-blur-md !border-white/10"

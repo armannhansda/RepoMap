@@ -6,6 +6,7 @@ import { analyzeRepo } from "@/services/api";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
+import LandingPage from "@/components/LandingPage";
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -111,17 +112,19 @@ export default function Home(){
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-transparent text-white font-sans">
-      <Header 
-        repoUrl={repoUrl} 
-        setRepoUrl={setRepoUrl} 
-        onAnalyze={handleAnalyze} 
-        onNewAnalysis={() => {
-          setGraph(null);
-          setRepoUrl("");
-          setSelectedNodeId(undefined);
-        }}
-        loading={loading} 
-      />
+      {graph && (
+        <Header 
+          repoUrl={repoUrl} 
+          setRepoUrl={setRepoUrl} 
+          onAnalyze={handleAnalyze} 
+          onNewAnalysis={() => {
+            setGraph(null);
+            setRepoUrl("");
+            setSelectedNodeId(undefined);
+          }}
+          loading={loading} 
+        />
+      )}
       
       <div className="flex flex-1 overflow-hidden relative">
         {graph && (
@@ -149,13 +152,12 @@ export default function Home(){
           )}
           
           {!graph ? (
-            <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
-              <div className="w-16 h-16 mb-6 opacity-20 border-4 border-dashed border-text-muted rounded-full animate-[spin_3s_linear_infinite]"></div>
-              <p className="text-lg font-medium">Enter a GitHub repository URL to begin</p>
-              <p className="text-sm mt-2 max-w-sm text-center opacity-70">
-                RepoMap will parse the codebase, map out dependencies, and extract function call graphs.
-              </p>
-            </div>
+            <LandingPage 
+              repoUrl={repoUrl}
+              setRepoUrl={setRepoUrl}
+              onAnalyze={handleAnalyze}
+              loading={loading}
+            />
           ) : (
             <RepoGraph 
               graph={graph} 
