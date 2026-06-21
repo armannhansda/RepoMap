@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@microsoft/clarity": "^1.0.2",
     "@tailwindcss/typography": "^0.5.20",
     "dagre": "^0.8.5",
     "idb": "^8.0.3",
