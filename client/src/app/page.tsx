@@ -110,7 +110,7 @@ export default function Home(){
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-bg-base text-text-main font-sans">
+    <div className="flex flex-col h-screen overflow-hidden bg-transparent text-white font-sans">
       <Header 
         repoUrl={repoUrl} 
         setRepoUrl={setRepoUrl} 
@@ -133,17 +133,17 @@ export default function Home(){
               repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
             />
             <div 
-              className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-brand z-10 transition-colors"
+              className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-white/30 z-10 transition-colors"
               onMouseDown={startResizeLeft}
             />
           </div>
         )}
         
-        <main className="flex-1 relative bg-surface overflow-hidden">
+        <main className="flex-1 relative bg-transparent overflow-hidden">
           {loading && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg-base/80 backdrop-blur-sm text-text-main">
-              <div className="w-12 h-12 mb-6 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xl font-medium text-brand">Analyzing Repository...</p>
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white">
+              <div className="w-12 h-12 mb-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xl font-medium text-white">Analyzing Repository...</p>
               <p className="text-sm mt-2 text-text-muted">This may take a few moments depending on the repository size.</p>
             </div>
           )}
@@ -169,7 +169,7 @@ export default function Home(){
         {graph && selectedNode && (
           <div style={{ width: rightWidth }} className="flex-shrink-0 relative">
             <div 
-              className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-brand z-10 transition-colors"
+              className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-white/30 z-10 transition-colors"
               onMouseDown={startResizeRight}
             />
             <FileSidebar 

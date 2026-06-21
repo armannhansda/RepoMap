@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-base: #0d1117;
+  --color-bg-base: #000000;
   
-  --color-surface: #161b22;
-  --color-surface-hover: #21262d;
-  --color-surface-active: #30363d;
+  --color-surface: rgba(255, 255, 255, 0.03);
+  --color-surface-hover: rgba(255, 255, 255, 0.08);
+  --color-surface-active: rgba(255, 255, 255, 0.12);
   
-  --color-border-subtle: #30363d;
-  --color-border-focus: #58a6ff;
+  --color-border-subtle: rgba(255, 255, 255, 0.1);
+  --color-border-focus: rgba(255, 255, 255, 0.3);
   
-  --color-text-main: #c9d1d9;
-  --color-text-muted: #8b949e;
+  --color-text-main: #ffffff;
+  --color-text-muted: #a1a1aa;
   
-  --color-brand: #58a6ff;
-  --color-brand-hover: #79c0ff;
+  --color-brand: #ffffff;
+  --color-brand-hover: #e4e4e7;
   
-  --color-node-file: #58a6ff;
-  --color-node-component: #bc8cff;
-  --color-node-function: #3fb950;
+  --color-node-file: #ffffff;
+  --color-node-component: #d4d4d8;
+  --color-node-function: #a1a1aa;
 }
 
 :root {
@@ -29,6 +29,9 @@
 
 body {
   background: var(--background);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(255,255,255,0.06), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255,255,255,0.04), transparent 25%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
@@ -38,8 +41,8 @@ body {
 
 /* Custom Scrollbar for sleek look */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -47,10 +50,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-active);
-  border-radius: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: rgba(255,255,255,0.3);
 }

@@ -71,7 +71,7 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
         return (
           <div key={currentPath}>
             <div 
-              className="flex items-center gap-1.5 py-1 px-2 hover:bg-surface-hover cursor-pointer rounded text-text-muted hover:text-text-main transition-colors"
+              className="flex items-center gap-1.5 py-1 px-2 hover:bg-white/10 cursor-pointer rounded text-text-muted hover:text-white transition-all duration-200"
               style={{ paddingLeft: `${level * 12 + 8}px` }}
               onClick={() => {
                 toggleFolder(currentPath);
@@ -93,14 +93,14 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
       return (
         <div 
           key={currentPath}
-          className={`flex items-center gap-1.5 py-1 px-2 cursor-pointer rounded transition-colors ${isSelected ? 'bg-surface-active text-brand' : 'text-text-muted hover:bg-surface-hover hover:text-text-main'}`}
+          className={`flex items-center gap-1.5 py-1 px-2 cursor-pointer rounded transition-all duration-200 ${isSelected ? 'bg-white/15 text-white' : 'text-text-muted hover:bg-white/10 hover:text-white'}`}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
           onClick={() => node.nodeId && onNodeSelect(node.nodeId)}
         >
           {name.endsWith('.ts') || name.endsWith('.tsx') ? (
-            <Code className={`w-4 h-4 ${isSelected ? 'text-brand' : 'text-text-muted'}`} />
+            <Code className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-text-muted'}`} />
           ) : (
-            <FileIcon className={`w-4 h-4 ${isSelected ? 'text-brand' : 'text-text-muted'}`} />
+            <FileIcon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-text-muted'}`} />
           )}
           <span className="truncate">{name}</span>
         </div>
@@ -109,11 +109,11 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
   };
 
   return (
-    <div className="w-full border-r border-border-subtle bg-bg-base flex flex-col h-full text-sm">
+    <div className="w-full border-r border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-sm relative z-40">
       {/* Header */}
-      <div className="p-4 border-b border-border-subtle flex items-center gap-3">
-        <div className="w-8 h-8 rounded-md bg-surface-active border border-border-subtle flex items-center justify-center">
-          <Folder className="w-4 h-4 text-brand" />
+      <div className="p-4 border-b border-white/10 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
+          <Folder className="w-4 h-4 text-white" />
         </div>
         <div className="overflow-hidden">
           <h2 className="font-semibold text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
@@ -126,7 +126,7 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
         
         {/* Explorer Section */}
         <div>
-          <div className="flex items-center gap-2 px-4 py-2 text-text-main font-medium bg-surface-active border-l-2 border-brand">
+          <div className="flex items-center gap-2 px-4 py-2 text-white font-medium bg-white/5 border-l-2 border-white backdrop-blur-sm">
             <Folder className="w-4 h-4" />
             <span>Explorer</span>
           </div>

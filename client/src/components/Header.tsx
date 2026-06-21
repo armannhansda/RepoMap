@@ -1,4 +1,5 @@
-import { Box, Search, CornerDownLeft } from "lucide-react";
+import { Search, CornerDownLeft, Plus } from "lucide-react";
+import Image from "next/image";
 
 interface HeaderProps {
   repoUrl: string;
@@ -10,11 +11,11 @@ interface HeaderProps {
 
 export default function Header({ repoUrl, setRepoUrl, onAnalyze, onNewAnalysis, loading }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-6 py-3 border-b border-border-subtle bg-bg-base text-sm">
+    <header className="flex items-center justify-between px-6 py-3 border-b border-white/10 bg-black/40 backdrop-blur-xl text-sm relative z-50">
       {/* Left side: Logo & Nav */}
       <div className="flex items-center gap-8">
-        <div className="flex items-center gap-2 font-bold text-lg text-text-main">
-          <Box className="w-5 h-5 text-brand" />
+        <div className="flex items-center gap-2 font-bold text-lg text-white">
+          <Image src="/icon.svg" alt="RepoMap Logo" width={24} height={24} className="w-6 h-6" />
           <span>RepoMap</span>
         </div>
       </div>
@@ -32,7 +33,7 @@ export default function Header({ repoUrl, setRepoUrl, onAnalyze, onNewAnalysis, 
               if (e.key === "Enter") onAnalyze();
             }}
             disabled={loading}
-            className="w-full bg-surface border border-border-subtle rounded-lg py-1.5 pl-10 pr-10 text-text-main placeholder-text-muted focus:outline-none focus:border-border-focus transition-colors disabled:opacity-50"
+            className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-10 pr-10 text-white placeholder-text-muted focus:outline-none focus:border-white/30 focus:bg-white/10 hover:bg-white/10 transition-all duration-300 disabled:opacity-50"
           />
           <button 
             onClick={onAnalyze}
@@ -48,9 +49,10 @@ export default function Header({ repoUrl, setRepoUrl, onAnalyze, onNewAnalysis, 
       <div className="flex items-center gap-4">
         <button 
           onClick={onNewAnalysis}
-          className="text-text-main font-medium hover:text-brand transition-colors"
+          className="flex items-center gap-2 text-white font-medium bg-white/5 border border-white/10 px-4 py-1.5 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all duration-300 active:scale-95 shadow-sm"
         >
-          New Analysis
+          <Plus className="w-4 h-4" />
+          <span>New Analysis</span>
         </button>
         {/* <button 
           onClick={onAnalyze}

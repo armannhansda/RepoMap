@@ -100,13 +100,13 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       type: 'smoothstep',
       animated: edge.type === 'calls',
       style: {
-        stroke: edge.type === 'calls' ? '#58a6ff' : edge.type === 'contains' ? '#30363d' : '#8b949e',
+        stroke: edge.type === 'calls' ? '#ffffff' : edge.type === 'contains' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.4)',
         strokeWidth: edge.type === 'calls' ? 1.5 : edge.type === 'contains' ? 1 : 1.5,
         strokeDasharray: edge.type === 'calls' ? '5,5' : edge.type === 'contains' ? '3,3' : 'none',
       },
       markerEnd: edge.type === 'contains' ? undefined : {
         type: MarkerType.ArrowClosed,
-        color: edge.type === 'calls' ? '#58a6ff' : '#8b949e',
+        color: edge.type === 'calls' ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
       },
     }));
 
@@ -220,18 +220,18 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         proOptions={{ hideAttribution: true }}
       >
         <FitViewOnUpdate nodes={nodes} />
-        <Background color="#30363d" gap={16} size={1} />
-        <Controls className="!bg-surface !border-border-subtle !fill-text-main [&>button]:!border-border-subtle [&>button]:!bg-surface [&>button]:hover:!bg-surface-hover" />
+        <Background color="rgba(255, 255, 255, 0.1)" gap={16} size={1} />
+        <Controls className="!bg-black/40 !backdrop-blur-md !border-white/10 !fill-white [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:hover:!bg-white/10" />
         <MiniMap
-          className="!bg-surface !border-border-subtle"
-          maskColor="rgba(15, 17, 26, 0.7)"
-          nodeColor="#4f46e5"
+          className="!bg-black/40 !backdrop-blur-md !border-white/10"
+          maskColor="rgba(0, 0, 0, 0.7)"
+          nodeColor="rgba(255, 255, 255, 0.5)"
         />
 
         {/* Hover Tooltip */}
         {hoveredNode && !isDragging && (
           <div 
-            className="fixed z-50 bg-surface border border-border-subtle rounded-lg shadow-2xl p-3 w-72 transition-opacity"
+            className="fixed z-50 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl p-3 w-72 transition-opacity"
             style={{ left: hoverPosition.x + 15, top: hoverPosition.y + 15 }}
             onMouseEnter={() => {
               if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -240,15 +240,15 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
               setHoveredNode(null);
             }}
           >
-            <div className="font-semibold text-text-main mb-1 truncate">{hoveredNode.label}</div>
-            <div className="text-[10px] text-text-muted mb-3 font-mono truncate pb-2 border-b border-border-subtle">
+            <div className="font-semibold text-white mb-1 truncate">{hoveredNode.label}</div>
+            <div className="text-[10px] text-text-muted mb-3 font-mono truncate pb-2 border-b border-white/10">
               {hoveredNode.path || hoveredNode.file}
             </div>
             
             <div className="flex flex-col gap-1.5 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-text-muted">Type</span>
-                <span className="text-text-main capitalize font-medium px-1.5 py-0.5 bg-surface-hover rounded text-[10px]">
+                <span className="text-white capitalize font-medium px-1.5 py-0.5 bg-white/10 rounded text-[10px]">
                   {hoveredNode.functionType || hoveredNode.type}
                 </span>
               </div>
@@ -277,9 +277,9 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
                     <span className="text-text-main font-mono">{hoveredNode.calledBy?.length || 0}</span>
                   </div>
                   {hoveredNode.line && (
-                    <div className="flex justify-between items-center mt-1 pt-1 border-t border-border-subtle">
+                    <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/10">
                       <span className="text-text-muted">Lines</span>
-                      <span className="text-text-main font-mono text-[10px] bg-surface-active px-1 rounded">
+                      <span className="text-white font-mono text-[10px] bg-white/10 px-1 rounded">
                         {hoveredNode.line} - {hoveredNode.endLine || '?'}
                       </span>
                     </div>
@@ -289,9 +289,9 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
             </div>
 
             {hoveredNodeContent && (
-              <div className="mt-3 border-t border-border-subtle pt-2">
+              <div className="mt-3 border-t border-white/10 pt-2">
                 <span className="text-[10px] text-text-muted uppercase tracking-wider mb-1 block">Preview</span>
-                <div className="rounded-md overflow-hidden text-[9px] max-h-[150px] overflow-y-auto border border-border-subtle bg-[#0a0a0a]">
+                <div className="rounded-md overflow-hidden text-[9px] max-h-[150px] overflow-y-auto border border-white/10 bg-black/40">
                   <SyntaxHighlighter
                     language={getLanguage()}
                     style={oneDark}
@@ -306,7 +306,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         )}
 
         {/* Legend */}
-        <div className="absolute top-4 right-4 bg-surface border border-border-subtle rounded-lg p-3 shadow-lg z-10 w-56 text-sm">
+        <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg p-3 shadow-lg z-10 w-56 text-sm">
           <h4 className="font-medium text-text-muted mb-2 text-xs uppercase tracking-wider">Legend</h4>
           
           <div className="space-y-3">
@@ -326,7 +326,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
               </div>
             </div>
 
-            <div className="h-px bg-border-subtle"></div>
+            <div className="h-px bg-white/10"></div>
 
             {/* Edges Section */}
             <div className="space-y-1.5">
@@ -338,8 +338,8 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
                 </span>
               </div>
 
-              <div className="flex items-center gap-2" title="Dashed indigo lines show execution flow. Identifies precisely which functions call other functions.">
-                <div className="w-4 h-0.5 border-t border-dashed border-brand shrink-0"></div>
+              <div className="flex items-center gap-2" title="Dashed lines show execution flow. Identifies precisely which functions call other functions.">
+                <div className="w-4 h-0.5 border-t border-dashed border-white shrink-0"></div>
                 <span className="text-text-main text-[11px] font-medium flex items-center">
                   Call
                   <span className="text-text-muted text-[10px] ml-1 font-normal">- execution flow</span>
@@ -347,7 +347,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
               </div>
 
               <div className="flex items-center gap-2" title="Dotted lines show structure. Connects a file node to the individual functions declared inside it.">
-                <div className="w-4 h-0.5 border-t border-dotted border-slate-700 shrink-0"></div>
+                <div className="w-4 h-0.5 border-t border-dotted border-white/30 shrink-0"></div>
                 <span className="text-text-main text-[11px] font-medium flex items-center">
                   Contains
                   <span className="text-text-muted text-[10px] ml-1 font-normal">- structure</span>

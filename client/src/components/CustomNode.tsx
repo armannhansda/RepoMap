@@ -17,8 +17,8 @@ export default function CustomNode({ data, selected }: { data: any, selected: bo
 
   return (
     <div className={`
-      relative rounded-xl bg-surface border shadow-lg min-w-[240px]
-      ${selected ? 'border-brand ring-2 ring-brand ring-opacity-50' : 'border-border-subtle'}
+      relative rounded-xl bg-black/40 backdrop-blur-md border shadow-lg min-w-[240px] transition-all duration-300 hover:scale-[1.02] hover:bg-black/60
+      ${selected ? 'border-white ring-2 ring-white ring-opacity-20' : 'border-white/20'}
     `}>
       <div className={`absolute top-0 left-0 right-0 h-2 rounded-t-xl ${borderColorClass}`} />
       
@@ -29,22 +29,22 @@ export default function CustomNode({ data, selected }: { data: any, selected: bo
         </div>
         
         {data.path && (
-          <div className="bg-bg-base p-2 rounded-md text-[11px] text-text-muted font-mono truncate border border-border-subtle max-w-[200px]" title={data.path}>
+          <div className="bg-white/5 p-2 rounded-md text-[11px] text-text-muted font-mono truncate border border-white/10 max-w-[200px]" title={data.path}>
             {data.path}
           </div>
         )}
         
         {data.functionType && (
           <div className="mt-2 flex gap-2">
-            <span className="text-[10px] bg-surface-active px-1.5 py-0.5 rounded border border-border-subtle text-text-muted">
+            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded border border-white/20 text-text-muted">
               {data.functionType}
             </span>
           </div>
         )}
       </div>
 
-      <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-brand !border-none" />
-      <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-brand !border-none" />
+      <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-white !border-none" />
+      <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-white !border-none" />
     </div>
   );
 }
