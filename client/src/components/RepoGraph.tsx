@@ -173,7 +173,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       return lines.slice(start, end).join("\n");
     }
     const lines = hoveredNodeContent.split("\n");
-    return lines.slice(0, 15).join("\n");
+    return lines.slice(0, 500).join("\n");
   }
 
   const getLanguage = () => {
