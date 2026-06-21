@@ -1,9 +1,10 @@
-import { getFileContent } from "@/services/api";
+import { getFileContent, explainNode } from "@/services/api";
 import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
 import { useEffect, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { X, FileText, Sparkles, FolderOpen, Copy, ChevronDown, ChevronRight, Code } from "lucide-react";
+import { X, FileText, Sparkles, FolderOpen, Copy, ChevronDown, ChevronRight, Code, Loader2 } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 interface Props {
   node: any;
@@ -15,10 +16,13 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
   const [content, setContent] = useState("");
   const [activeTab, setActiveTab] = useState("Details");
   const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   const filePath = node?.path ?? node?.file ?? "";
 
   useEffect(() => {
+    setAiExplanation(null);
     async function load() {
       if (!node || !repoId || !filePath) {
         setContent("");
@@ -87,6 +91,30 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
     });
   };
 
+  const handleExplainNode = async () => {
+    if (!node) return;
+    setIsExplaining(true);
+    try {
+      const nodeData = {
+        label: node.label,
+        type: node.type,
+        path: filePath,
+        functionType: node.functionType,
+        imports: node.imports,
+        calls: node.calls,
+        calledBy: node.calledBy,
+        sourceCode: content && node.type === 'function' ? getFunctionSource(content, node.line || 1, node.endLine) : content
+      };
+      const response = await explainNode(nodeData);
+      setAiExplanation(response.explanation || response.error);
+    } catch (err) {
+      console.error(err);
+      setAiExplanation("Failed to generate explanation. Check if GEMINI_API_KEY is configured.");
+    } finally {
+      setIsExplaining(false);
+    }
+  };
+
   const dependenciesCount = node.imports?.length || 0;
   const dependentsCount = node.importedBy?.length || 0;
   const locCount = content ? content.split("\n").length : 0;
@@ -133,15 +161,34 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
         {activeTab === "Details" && (
           <>
         {/* AI Summary */}
-        {/* <div className="bg-bg-base border border-border-subtle rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2 text-brand font-medium">
-            <Sparkles className="w-4 h-4" />
-            <span>AI Summary</span>
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4 backdrop-blur-sm relative overflow-hidden">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-white font-medium">
+              <Sparkles className="w-4 h-4 text-brand" />
+              <span>AI Explanation</span>
+            </div>
+            {!aiExplanation && (
+              <button 
+                onClick={handleExplainNode} 
+                disabled={isExplaining}
+                className="bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1 rounded text-xs font-medium transition-all duration-300 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isExplaining ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {isExplaining ? "Generating..." : "Explain Node"}
+              </button>
+            )}
           </div>
-          <p className="text-text-muted leading-relaxed text-xs">
-            This is the main component file. It relies on standard library tools to orchestrate application flow. High centrality suggests it is a critical node for the system.
-          </p>
-        </div> */}
+          
+          {aiExplanation ? (
+            <div className="text-text-muted leading-relaxed text-xs prose prose-invert prose-sm max-w-none prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10">
+              <ReactMarkdown>{aiExplanation}</ReactMarkdown>
+            </div>
+          ) : (
+            <p className="text-text-muted text-xs italic">
+              Click the button above to generate a high-level summary of what this node does and how it fits into the codebase.
+            </p>
+          )}
+        </div>
 
         {/* Title & Path */}
         <div>

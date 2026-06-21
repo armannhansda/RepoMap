@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import repoRoutes from "./routes/repoRoutes.ts"
 import fileRoutes from "./routes/fileRoutes.ts"
+import aiRoutes from "./routes/aiRoutes.ts"
 
 const app = express();
 
@@ -10,6 +12,7 @@ app.use(express.json());
 
 app.use("/api/repo", repoRoutes);
 app.use("/api/repo", fileRoutes);
+app.use("/api/ai", aiRoutes);
 
 
 app.get("/", (req, res) => {

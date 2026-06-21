@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-bg-base: #000000;
@@ -16,9 +17,9 @@
   --color-brand: #ffffff;
   --color-brand-hover: #e4e4e7;
   
-  --color-node-file: #ffffff;
-  --color-node-component: #d4d4d8;
-  --color-node-function: #a1a1aa;
+  --color-node-file: #3b82f6; /* Blue */
+  --color-node-component: #a855f7; /* Purple */
+  --color-node-function: #10b981; /* Emerald */
 }
 
 :root {

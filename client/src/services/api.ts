@@ -23,3 +23,13 @@ export async function getFileContent(repoId:string, filePath:string) {
   return response.json();
 }
   
+export async function explainNode(nodeData: any) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/explain`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(nodeData)
+  });
+  return response.json();
+}

@@ -8,7 +8,9 @@ import CustomNode from "./CustomNode";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
-import { getFileContent } from "@/services/api";
+import { getFileContent, explainNode } from "@/services/api";
+import ReactMarkdown from 'react-markdown';
+import { Loader2, Sparkles } from "lucide-react";
 
 const nodeTypes = {
   custom: CustomNode,
@@ -100,13 +102,13 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       type: 'smoothstep',
       animated: edge.type === 'calls',
       style: {
-        stroke: edge.type === 'calls' ? '#ffffff' : edge.type === 'contains' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.4)',
+        stroke: edge.type === 'calls' ? '#f59e0b' : edge.type === 'contains' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(59, 130, 246, 0.6)',
         strokeWidth: edge.type === 'calls' ? 1.5 : edge.type === 'contains' ? 1 : 1.5,
         strokeDasharray: edge.type === 'calls' ? '5,5' : edge.type === 'contains' ? '3,3' : 'none',
       },
       markerEnd: edge.type === 'contains' ? undefined : {
         type: MarkerType.ArrowClosed,
-        color: edge.type === 'calls' ? '#ffffff' : 'rgba(255, 255, 255, 0.4)',
+        color: edge.type === 'calls' ? '#f59e0b' : 'rgba(59, 130, 246, 0.6)',
       },
     }));
 
@@ -121,6 +123,40 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [hoveredNodeContent, setHoveredNodeContent] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
+  const [isExplaining, setIsExplaining] = useState<Record<string, boolean>>({});
+
+  const handleExplainNode = async (node: any, content: string | null) => {
+    if (!node) return;
+    setIsExplaining(prev => ({ ...prev, [node.id]: true }));
+    try {
+      let sourceCode = content;
+      if (content && node.type === "function") {
+        const lines = content.split("\n");
+        const start = Math.max(node.line - 1, 0);
+        const end = node.endLine ? node.endLine : start + 10;
+        sourceCode = lines.slice(start, end).join("\n");
+      }
+
+      const nodeData = {
+        label: node.label,
+        type: node.type,
+        path: node.path || node.file,
+        functionType: node.functionType,
+        imports: node.imports,
+        calls: node.calls,
+        calledBy: node.calledBy,
+        sourceCode: sourceCode
+      };
+      const response = await explainNode(nodeData);
+      setAiExplanations(prev => ({ ...prev, [node.id]: response.explanation || response.error }));
+    } catch (err) {
+      console.error(err);
+      setAiExplanations(prev => ({ ...prev, [node.id]: "Failed to generate explanation." }));
+    } finally {
+      setIsExplaining(prev => ({ ...prev, [node.id]: false }));
+    }
+  };
 
   useEffect(() => {
     if (!hoveredNode) {
@@ -302,6 +338,35 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
                 </div>
               </div>
             )}
+
+            {/* AI Explanation Section */}
+            <div className="mt-3 border-t border-white/10 pt-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] text-text-muted uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5 text-brand" /> AI Explanation
+                </span>
+                {!aiExplanations[hoveredNode.id] && (
+                  <button 
+                    onClick={() => handleExplainNode(hoveredNode, hoveredNodeContent)} 
+                    disabled={isExplaining[hoveredNode.id]}
+                    className="bg-white/10 hover:bg-white/20 border border-white/20 px-2 py-0.5 rounded text-[9px] font-medium transition-all duration-300 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                  >
+                    {isExplaining[hoveredNode.id] ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Sparkles className="w-2 h-2" />}
+                    {isExplaining[hoveredNode.id] ? "Loading..." : "Explain"}
+                  </button>
+                )}
+              </div>
+              
+              {aiExplanations[hoveredNode.id] ? (
+                <div className="text-text-muted text-[10px] prose prose-invert prose-sm max-w-none prose-p:leading-snug prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 max-h-[150px] overflow-y-auto pr-1">
+                  <ReactMarkdown>{aiExplanations[hoveredNode.id]}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-[9px] text-text-muted italic">
+                  Click 'Explain' for a quick AI summary.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -331,7 +396,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
             {/* Edges Section */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-2" title="Solid lines show file dependencies. Indicates a file imports code from another file.">
-                <div className="w-4 h-0.5 bg-slate-500 shrink-0"></div>
+                <div className="w-4 h-0.5 bg-blue-500/60 shrink-0"></div>
                 <span className="text-text-main text-[11px] font-medium flex items-center">
                   Import
                   <span className="text-text-muted text-[10px] ml-1 font-normal">- dependency</span>
@@ -339,7 +404,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
               </div>
 
               <div className="flex items-center gap-2" title="Dashed lines show execution flow. Identifies precisely which functions call other functions.">
-                <div className="w-4 h-0.5 border-t border-dashed border-white shrink-0"></div>
+                <div className="w-4 h-0.5 border-t-[2px] border-dashed border-amber-500 shrink-0"></div>
                 <span className="text-text-main text-[11px] font-medium flex items-center">
                   Call
                   <span className="text-text-muted text-[10px] ml-1 font-normal">- execution flow</span>
@@ -347,7 +412,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
               </div>
 
               <div className="flex items-center gap-2" title="Dotted lines show structure. Connects a file node to the individual functions declared inside it.">
-                <div className="w-4 h-0.5 border-t border-dotted border-white/30 shrink-0"></div>
+                <div className="w-4 h-0.5 border-t-[1.5px] border-dotted border-emerald-500/40 shrink-0"></div>
                 <span className="text-text-main text-[11px] font-medium flex items-center">
                   Contains
                   <span className="text-text-muted text-[10px] ml-1 font-normal">- structure</span>
