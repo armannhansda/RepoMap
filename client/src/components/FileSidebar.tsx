@@ -109,7 +109,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
       setAiExplanation(response.explanation || response.error);
     } catch (err) {
       console.error(err);
-      setAiExplanation("Failed to generate explanation. Check if GEMINI_API_KEY is configured.");
+      setAiExplanation("Failed to generate explanation. Check if GEMINI_API_KEY or GROQ_API_KEY is configured.");
     } finally {
       setIsExplaining(false);
     }

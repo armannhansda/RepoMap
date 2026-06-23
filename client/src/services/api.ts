@@ -33,3 +33,14 @@ export async function explainNode(nodeData: any) {
   });
   return response.json();
 }
+
+export async function explainRepo(repoName: string, files: any[]) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/explain-repo`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify({ repoName, files })
+  });
+  return response.json();
+}

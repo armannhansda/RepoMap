@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import RepoGraph from "@/components/RepoGraph";
-import { analyzeRepo } from "@/services/api";
+import { analyzeRepo, explainRepo } from "@/services/api";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
+import RepoExplanationModal from "@/components/RepoExplanationModal";
+import { Sparkles } from "lucide-react";
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -17,6 +19,31 @@ export default function Home(){
   const [loading, setLoading] = useState(false);
   const [repoId, setRepoId] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>();
+  
+  const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
+  const [repoExplanation, setRepoExplanation] = useState<string | null>(null);
+  const [isExplaining, setIsExplaining] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
+
+  const handleExplainRepo = async () => {
+    setIsExplainModalOpen(true);
+    if (repoExplanation) return;
+    setIsExplaining(true);
+    setExplainError(null);
+    try {
+      const files = graph?.nodes?.filter((n: any) => n.type === 'file').map((n: any) => ({ path: n.path || n.label })) || [];
+      const response = await explainRepo(repoUrl.split("/").pop()?.replace(".git", "") || "Repository", files);
+      if (response.error) {
+        setExplainError(response.error);
+      } else {
+        setRepoExplanation(response.explanation);
+      }
+    } catch (err) {
+      setExplainError("Failed to generate repository explanation. Please check your API key.");
+    } finally {
+      setIsExplaining(false);
+    }
+  };
 
   async function handleAnalyze() {
     if (!repoUrl) return;
@@ -136,13 +163,25 @@ export default function Home(){
               repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
             />
             <div 
-              className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-white/30 z-10 transition-colors"
+              className="absolute top-0 -right-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
               onMouseDown={startResizeLeft}
             />
           </div>
         )}
         
         <main className="flex-1 relative bg-transparent overflow-hidden">
+          {graph && !loading && (
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
+              <button 
+                onClick={handleExplainRepo}
+                className="flex items-center gap-2 bg-brand/20 hover:bg-brand/30 border border-brand/30 text-brand px-5 py-2.5 rounded-full font-medium transition-all shadow-lg backdrop-blur-md text-sm cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Explain Repository
+              </button>
+            </div>
+          )}
+
           {loading && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white">
               <div className="w-12 h-12 mb-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -171,7 +210,7 @@ export default function Home(){
         {graph && selectedNode && (
           <div style={{ width: rightWidth }} className="flex-shrink-0 relative">
             <div 
-              className="absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-white/30 z-10 transition-colors"
+              className="absolute top-0 -left-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
               onMouseDown={startResizeRight}
             />
             <FileSidebar 
@@ -182,6 +221,15 @@ export default function Home(){
           </div>
         )}
       </div>
+
+      <RepoExplanationModal 
+        isOpen={isExplainModalOpen}
+        onClose={() => setIsExplainModalOpen(false)}
+        repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Repository"}
+        explanation={repoExplanation}
+        isLoading={isExplaining}
+        error={explainError}
+      />
     </div>
   );
 }

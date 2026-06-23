@@ -164,6 +164,7 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
           <HelpCircle className="w-4 h-4 hover:text-text-main cursor-pointer" />
         </div>
       </div> */}
+      
     </div>
   );
 }

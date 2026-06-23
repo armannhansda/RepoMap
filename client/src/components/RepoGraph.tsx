@@ -126,6 +126,37 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [isExplaining, setIsExplaining] = useState<Record<string, boolean>>({});
 
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isPanelDragging, setIsPanelDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+
+  const startPanelDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsPanelDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      offsetX: dragOffset.x,
+      offsetY: dragOffset.y,
+    };
+    
+    const onMouseMove = (e: MouseEvent) => {
+      setDragOffset({
+        x: dragStartRef.current.offsetX + (e.clientX - dragStartRef.current.x),
+        y: dragStartRef.current.offsetY + (e.clientY - dragStartRef.current.y),
+      });
+    };
+    
+    const onMouseUp = () => {
+      setIsPanelDragging(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   const handleExplainNode = async (node: any, content: string | null) => {
     if (!node) return;
     setIsExplaining(prev => ({ ...prev, [node.id]: true }));
@@ -260,8 +291,11 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         onNodeMouseEnter={(e, node) => {
           if (!isDragging) {
             if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-            setHoveredNode(node.data);
-            setHoverPosition({ x: e.clientX, y: e.clientY });
+            if (!hoveredNode || hoveredNode.id !== node.id) {
+              setHoveredNode(node.data);
+              setHoverPosition({ x: e.clientX, y: e.clientY });
+              setDragOffset({ x: 0, y: 0 });
+            }
           }
         }}
         onNodeMouseLeave={() => {
@@ -298,15 +332,25 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         {hoveredNode && !isDragging && (
           <div 
             className="fixed z-50 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl p-3 w-72 transition-opacity"
-            style={{ left: hoverPosition.x + 15, top: hoverPosition.y + 15 }}
+            style={{ left: hoverPosition.x + 15 + dragOffset.x, top: hoverPosition.y + 15 + dragOffset.y }}
             onMouseEnter={() => {
               if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
             }}
             onMouseLeave={() => {
-              setHoveredNode(null);
+              if (!isPanelDragging) {
+                hoverTimeoutRef.current = setTimeout(() => {
+                  setHoveredNode(null);
+                }, 200);
+              }
             }}
           >
-            <div className="font-semibold text-white mb-1 truncate">{hoveredNode.label}</div>
+            <div 
+              className="font-semibold text-white mb-1 truncate cursor-move select-none hover:text-brand transition-colors"
+              onMouseDown={startPanelDrag}
+              title="Drag to move panel"
+            >
+              {hoveredNode.label}
+            </div>
             <div className="text-[10px] text-text-muted mb-3 font-mono truncate pb-2 border-b border-white/10">
               {hoveredNode.path || hoveredNode.file}
             </div>

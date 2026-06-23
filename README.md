@@ -27,7 +27,7 @@ With its sleek glassmorphic monochrome UI and deeply integrated AI, understandin
 ### Backend (`server/`)
 - **Server**: Node.js & Express (TypeScript)
 - **Git Operations**: `simple-git`
-- **AI Integration**: `@google/genai` (Gemini 2.5 Flash)
+- **AI Integration**: `@google/genai` (Gemini 2.5 Flash) with fallback to `groq-sdk` (Llama 3)
 - **Parser**: Custom AST/Regex-based parsing engine (`parser/` directory)
 
 ---
@@ -37,7 +37,7 @@ With its sleek glassmorphic monochrome UI and deeply integrated AI, understandin
 ### Prerequisites
 - Node.js (v18 or higher)
 - NPM or Yarn
-- A [Google Gemini API Key](https://aistudio.google.com/) for AI explanations.
+- A [Google Gemini API Key](https://aistudio.google.com/) or [Groq API Key](https://console.groq.com/keys) for AI explanations.
 
 ### 1. Backend Setup
 
@@ -58,6 +58,7 @@ Inside `.env`, configure the following:
 ```env
 PORT=5001
 GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here_as_fallback # Optional
 ```
 
 **Start the Server:**
