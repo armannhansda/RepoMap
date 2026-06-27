@@ -14,6 +14,7 @@ interface Props {
 
 export default function FileSidebar({ node, repoId, onClose }: Props) {
   const [content, setContent] = useState("");
+  const [commitsCount, setCommitsCount] = useState<number>(0);
   const [activeTab, setActiveTab] = useState("Details");
   const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
       const cachedFile = await getOpenedFile(repoId, filePath);
       if (cachedFile && cachedFile.content && cachedFile.content.trim() !== "") {
         setContent(cachedFile.content);
+        setCommitsCount(cachedFile.commitsCount || 0);
         return;
       }
 
@@ -48,11 +50,13 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
         if (file.error) {
           console.error("Backend error:", file.error);
           setContent("");
+          setCommitsCount(0);
           return;
         }
 
         const fileContent = file.content ?? "";
         setContent(fileContent);
+        setCommitsCount(file.commitsCount || 0);
 
         // 3. Save to IndexedDB cache
         if (fileContent.trim() !== "") {
@@ -60,7 +64,8 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
             repoId,
             path: filePath,
             content: fileContent,
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            commitsCount: file.commitsCount || 0
           });
         }
       } catch (e) {
@@ -118,7 +123,6 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
   const dependenciesCount = node.imports?.length || 0;
   const dependentsCount = node.importedBy?.length || 0;
   const locCount = content ? content.split("\n").length : 0;
-  const commitsCount = Math.floor(Math.random() * 50) + 1; // Mock data
 
   return (
     <div className="w-full border-l border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-sm text-text-main shadow-2xl overflow-hidden shrink-0 relative z-40">
@@ -142,7 +146,7 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 px-4 bg-transparent shrink-0">
-        {["Details", "Source", "Graph"].map(tab => (
+        {["Details", "Source"].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -365,13 +369,6 @@ export default function FileSidebar({ node, repoId, onClose }: Props) {
             ) : (
               <div className="p-4 text-text-muted text-center italic">No source available.</div>
             )}
-          </div>
-        )}
-
-        {activeTab === "Graph" && (
-          <div className="flex flex-col items-center justify-center h-40 text-text-muted">
-            <Sparkles className="w-8 h-8 mb-2 opacity-50" />
-            <p>Graph view coming soon...</p>
           </div>
         )}
       </div>

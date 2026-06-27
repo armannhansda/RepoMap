@@ -29,4 +29,5 @@ export interface OpenedFile {
   path: string;
   content: string;
   updatedAt: number;
+  commitsCount?: number;
 }

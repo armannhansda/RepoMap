@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import RepoGraph from "@/components/RepoGraph";
-import { analyzeRepo, explainRepo } from "@/services/api";
+import { analyzeRepo, explainRepo, generateArchitectureDiagram } from "@/services/api";
+import { generateDrawioXml } from "@/utils/exportDrawio";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
 import RepoExplanationModal from "@/components/RepoExplanationModal";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Download, Loader2 } from "lucide-react";
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -24,6 +25,7 @@ export default function Home(){
   const [repoExplanation, setRepoExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
+  const [isGeneratingDiagram, setIsGeneratingDiagram] = useState(false);
 
   const handleExplainRepo = async () => {
     setIsExplainModalOpen(true);
@@ -42,6 +44,36 @@ export default function Home(){
       setExplainError("Failed to generate repository explanation. Please check your API key.");
     } finally {
       setIsExplaining(false);
+    }
+  };
+
+  const handleGenerateDiagram = async () => {
+    setIsGeneratingDiagram(true);
+    setExplainError(null);
+    try {
+      const files = graph?.nodes?.filter((n: any) => n.type === 'file').map((n: any) => ({ path: n.path || n.label })) || [];
+      const response = await generateArchitectureDiagram(repoUrl.split("/").pop()?.replace(".git", "") || "Repository", files);
+      if (response.error) {
+        setExplainError(response.error);
+        setIsExplainModalOpen(true);
+      } else if (response.nodes && response.edges) {
+        generateDrawioXml(response.nodes, response.edges, `${repoUrl.split("/").pop()?.replace(".git", "")}-architecture.drawio`, response.groups || []);
+        
+        if (response.explanation) {
+          setRepoExplanation(response.explanation);
+          setExplainError(null);
+          setIsExplainModalOpen(true);
+        }
+      } else {
+        setExplainError("AI did not return a valid diagram structure.");
+        setIsExplainModalOpen(true);
+      }
+    } catch (err: any) {
+      console.error("Diagram error:", err);
+      setExplainError(`Failed to generate architecture diagram: ${err.message || err}. Please check the console for details.`);
+      setIsExplainModalOpen(true);
+    } finally {
+      setIsGeneratingDiagram(false);
     }
   };
 
@@ -171,13 +203,21 @@ export default function Home(){
         
         <main className="flex-1 relative bg-transparent overflow-hidden">
           {graph && !loading && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
               <button 
                 onClick={handleExplainRepo}
                 className="flex items-center gap-2 bg-brand/20 hover:bg-brand/30 border border-brand/30 text-brand px-5 py-2.5 rounded-full font-medium transition-all shadow-lg backdrop-blur-md text-sm cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
                 Explain Repository
+              </button>
+              <button 
+                onClick={handleGenerateDiagram}
+                disabled={isGeneratingDiagram}
+                className="flex items-center gap-2 bg-brand/20 hover:bg-brand/30 border border-brand/30 text-brand px-5 py-2.5 rounded-full font-medium transition-all shadow-lg backdrop-blur-md text-sm cursor-pointer disabled:opacity-50"
+              >
+                {isGeneratingDiagram ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isGeneratingDiagram ? "Generating..." : "Generate Diagram"}
               </button>
             </div>
           )}
