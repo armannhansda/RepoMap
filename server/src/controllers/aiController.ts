@@ -1,6 +1,17 @@
 import { type Request, type Response } from 'express';
-import { GoogleGenAI } from '@google/genai';
-import Groq from 'groq-sdk';export async function explainNode(req: Request, res: Response): Promise<void> {
+import { getRepoMemory } from '../store/memoryStore.ts';
+import { buildRepoMemory } from '../services/memoryBuilder.ts';
+import { calculateBlastRadius } from '../services/impactAnalyzer.ts';
+import { generateTaskPlan } from '../services/planningAgent.ts';
+import { queryArchitecture } from '../services/architectureAgent.ts';
+import { performCodeReview } from '../services/codeReviewEngine.ts';
+import { calculateHealthDashboard } from '../services/healthDashboardEngine.ts';
+import { runMultiAgentOrchestration } from '../services/agents/Orchestrator.ts';
+import { getRepository } from '../store/repoRegistry.ts';
+import { runParser } from '../services/runParser.ts';
+import { generateAIContent } from '../services/aiProvider.ts';
+
+export async function explainNode(req: Request, res: Response): Promise<void> {
   try {
     const { label, type, path, functionType, calls, calledBy, imports, sourceCode } = req.body;
 
@@ -30,38 +41,7 @@ import Groq from 'groq-sdk';export async function explainNode(req: Request, res:
 
     prompt += `\nProvide a short, easy-to-read explanation (under 150 words) formatted in Markdown. Focus on its primary architectural purpose and how data/execution flows through it.`;
 
-    let explanationText = "";
-    
-    try {
-      if (process.env.GEMINI_API_KEY) {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: prompt,
-        });
-        explanationText = response.text || "";
-      } else {
-        throw new Error("Gemini API key not configured");
-      }
-    } catch (geminiError) {
-      console.warn("Gemini generation failed or not configured, falling back to Groq...");
-      
-      if (process.env.GROQ_API_KEY) {
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const response = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: "llama-3.3-70b-versatile",
-        });
-        explanationText = response.choices[0]?.message?.content || "";
-      } else {
-        throw new Error("Groq API key not configured for fallback.");
-      }
-    }
+    const explanationText = await generateAIContent(prompt);
 
     res.json({ explanation: explanationText });
   } catch (error) {
@@ -90,38 +70,7 @@ Please include:
 
 Do not artificially limit the length. Be as detailed and comprehensive as possible given the file structure.`;
 
-    let explanationText = "";
-    
-    try {
-      if (process.env.GEMINI_API_KEY) {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: prompt,
-        });
-        explanationText = response.text || "";
-      } else {
-        throw new Error("Gemini API key not configured");
-      }
-    } catch (geminiError) {
-      console.warn("Gemini generation failed or not configured, falling back to Groq...");
-      
-      if (process.env.GROQ_API_KEY) {
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const response = await groq.chat.completions.create({
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          model: "llama-3.3-70b-versatile",
-        });
-        explanationText = response.choices[0]?.message?.content || "";
-      } else {
-        throw new Error("Groq API key not configured for fallback.");
-      }
-    }
+    const explanationText = await generateAIContent(prompt);
 
     res.json({ explanation: explanationText });
   } catch (error) {
@@ -197,35 +146,7 @@ The JSON must perfectly match the following structure:
 - Always validate that every source/target id in edges matches an existing node id.
 OUTPUT ONLY VALID JSON. NO MARKDOWN. NO EXPLANATIONS OUTSIDE THE JSON OBJECT.`;
 
-    let resultText = "";
-    
-    try {
-      if (process.env.GEMINI_API_KEY) {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: prompt,
-        });
-        resultText = response.text || "";
-        console.log("✅ Successfully generated architecture diagram using: gemini-1.5-flash");
-      } else {
-        throw new Error("Gemini API key not configured");
-      }
-    } catch (geminiError) {
-      console.warn("⚠️ Gemini generation failed or not configured, falling back to Groq...");
-      
-      if (process.env.GROQ_API_KEY) {
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const response = await groq.chat.completions.create({
-          messages: [{ role: "user", content: prompt }],
-          model: "llama-3.3-70b-versatile",
-        });
-        resultText = response.choices[0]?.message?.content || "";
-        console.log("✅ Successfully generated architecture diagram using: llama-3.3-70b-versatile (Groq)");
-      } else {
-        throw new Error("Groq API key not configured for fallback.");
-      }
-    }
+    const resultText = await generateAIContent(prompt);
 
     // Extract JSON
     let jsonStr = resultText;
@@ -252,3 +173,213 @@ OUTPUT ONLY VALID JSON. NO MARKDOWN. NO EXPLANATIONS OUTSIDE THE JSON OBJECT.`;
     res.status(500).json({ error: "Failed to generate AI diagram for repository" });
   }
 }
+
+export async function getMemoryController(req: Request, res: Response): Promise<void> {
+  try {
+    const repoId = (req.query.repoId || req.body.repoId) as string;
+    if (!repoId) {
+      res.status(400).json({ error: "repoId is required" });
+      return;
+    }
+    const memory = getRepoMemory(repoId);
+    if (!memory) {
+      res.status(404).json({ error: "Repository memory not found. Run analysis first." });
+      return;
+    }
+    res.json({ success: true, memory });
+  } catch (err) {
+    console.error("Error retrieving repository memory:", err);
+    res.status(500).json({ error: "Failed to retrieve repository memory" });
+  }
+}
+
+export async function buildMemoryController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, graph } = req.body;
+    if (!repoId || !graph) {
+      res.status(400).json({ error: "repoId and graph are required to rebuild memory" });
+      return;
+    }
+    const memory = await buildRepoMemory(repoId, graph);
+    res.json({ success: true, memory });
+  } catch (err) {
+    console.error("Error building repository memory:", err);
+    res.status(500).json({ error: "Failed to build repository memory" });
+  }
+}
+
+export async function impactAnalysisController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, targetId, changeType = "MODIFY", graph: inputGraph } = req.body;
+    if (!targetId) {
+      res.status(400).json({ error: "targetId is required for impact analysis" });
+      return;
+    }
+
+    let graph = inputGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        graph = await runParser(repoPath);
+      }
+    }
+
+    if (!graph) {
+      res.status(400).json({ error: "Repository graph not found. Provide graph payload or valid repoId." });
+      return;
+    }
+
+    const memory = repoId ? getRepoMemory(repoId) : undefined;
+    const result = await calculateBlastRadius(targetId, changeType as "MODIFY" | "DELETE", graph, memory);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    console.error("Error calculating impact analysis:", err);
+    res.status(500).json({ error: err.message || "Failed to calculate blast radius" });
+  }
+}
+
+export async function planTaskController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, prompt, graph: providedGraph } = req.body;
+    if (!prompt) {
+      res.status(400).json({ error: "Missing 'prompt' in request body." });
+      return;
+    }
+
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for task plan, using empty graph");
+        }
+      }
+    }
+
+    const memory = repoId ? getRepoMemory(repoId) : undefined;
+    const plan = await generateTaskPlan(repoId || "repo", prompt, graph || { nodes: [], edges: [] }, memory);
+    res.json({ success: true, plan });
+  } catch (err: any) {
+    console.error("Error generating task plan:", err);
+    res.status(500).json({ error: err.message || "Failed to generate task plan" });
+  }
+}
+
+export async function queryArchitectureController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, question, graph: providedGraph } = req.body;
+    if (!question) {
+      res.status(400).json({ error: "Missing 'question' in request body." });
+      return;
+    }
+
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for architecture query, using empty graph");
+        }
+      }
+    }
+
+    const memory = repoId ? getRepoMemory(repoId) : undefined;
+    const result = await queryArchitecture(repoId || "repo", question, graph || { nodes: [], edges: [] }, memory);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    console.error("Error querying architecture:", err);
+    res.status(500).json({ error: err.message || "Failed to query architecture" });
+  }
+}
+
+export async function handleCodeReview(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, graph: providedGraph } = req.body;
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for code review, using empty graph");
+        }
+      }
+    }
+
+    const memory = repoId ? getRepoMemory(repoId) : undefined;
+    const report = await performCodeReview(repoId || "repo", graph || { nodes: [], edges: [] }, memory);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    console.error("Error running AI code review:", err);
+    res.status(500).json({ error: err.message || "Failed to perform AI code review" });
+  }
+}
+
+export async function handleHealthScore(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, graph: providedGraph } = req.body;
+    let graph = providedGraph;
+    let repoPath: string | undefined = undefined;
+
+    if (repoId) {
+      const rPath = getRepository(repoId);
+      if (rPath) {
+        repoPath = rPath;
+        if (!graph) {
+          try {
+            const parsed = await runParser(rPath);
+            graph = parsed.graph;
+          } catch (err) {
+            console.warn("Could not re-parse repository for health score, using empty graph");
+          }
+        }
+      }
+    }
+
+    const dashboard = await calculateHealthDashboard(repoId || "repo", graph || { nodes: [], edges: [] }, repoPath);
+    res.json({ success: true, dashboard });
+  } catch (err: any) {
+    console.error("Error generating health score dashboard:", err);
+    res.status(500).json({ error: err.message || "Failed to calculate health score dashboard" });
+  }
+}
+
+export async function handleOrchestrate(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, prompt, graph: providedGraph } = req.body;
+    if (!prompt) {
+      res.status(400).json({ error: "Missing 'prompt' in request body." });
+      return;
+    }
+
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for multi-agent orchestration, using empty graph");
+        }
+      }
+    }
+
+    const memory = repoId ? getRepoMemory(repoId) : undefined;
+    const report = await runMultiAgentOrchestration(repoId || "repo", prompt, graph || { nodes: [], edges: [] }, memory);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    console.error("Error running multi-agent orchestration:", err);
+    res.status(500).json({ error: err.message || "Failed to execute multi-agent orchestration" });
+  }
+}
+
+

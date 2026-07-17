@@ -8,7 +8,8 @@ import aiRoutes from "./routes/aiRoutes.ts"
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 app.use("/api/repo", repoRoutes);
 app.use("/api/repo", fileRoutes);

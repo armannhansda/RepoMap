@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
 import RepoGraph from "@/components/RepoGraph";
 import { analyzeRepo, explainRepo, generateArchitectureDiagram } from "@/services/api";
 import { generateDrawioXml } from "@/utils/exportDrawio";
@@ -8,8 +9,12 @@ import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
-import RepoExplanationModal from "@/components/RepoExplanationModal";
-import { Sparkles, Download, Loader2 } from "lucide-react";
+import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap } from "lucide-react";
+
+const RepoExplanationModal = dynamic(() => import("@/components/RepoExplanationModal"), { ssr: false });
+const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr: false });
+const HealthDashboardModal = dynamic(() => import("@/components/HealthDashboardModal"), { ssr: false });
+const MultiAgentOrchestratorModal = dynamic(() => import("@/components/MultiAgentOrchestratorModal"), { ssr: false });
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -27,7 +32,68 @@ export default function Home(){
   const [explainError, setExplainError] = useState<string | null>(null);
   const [isGeneratingDiagram, setIsGeneratingDiagram] = useState(false);
 
-  const handleExplainRepo = async () => {
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiModalTab, setAiModalTab] = useState<'qa' | 'planner'>('qa');
+
+  const [healthModalOpen, setHealthModalOpen] = useState(false);
+  const [healthModalTab, setHealthModalTab] = useState<'health' | 'review' | 'git'>('health');
+
+  const [orchestratorModalOpen, setOrchestratorModalOpen] = useState(false);
+
+  const handleOpenAiTab = useCallback((tab: 'qa' | 'planner') => {
+    if (aiModalOpen && aiModalTab === tab) {
+      setAiModalOpen(false);
+      return;
+    }
+    setIsExplainModalOpen(false);
+    setOrchestratorModalOpen(false);
+    setHealthModalOpen(false);
+    setAiModalTab(tab);
+    setAiModalOpen(true);
+  }, [aiModalOpen, aiModalTab]);
+
+  const handleOpenOrchestrator = useCallback(() => {
+    if (orchestratorModalOpen) {
+      setOrchestratorModalOpen(false);
+      return;
+    }
+    setIsExplainModalOpen(false);
+    setAiModalOpen(false);
+    setHealthModalOpen(false);
+    setOrchestratorModalOpen(true);
+  }, [orchestratorModalOpen]);
+
+  const handleOpenHealthTab = useCallback((tab?: 'health' | 'review' | 'git') => {
+    const targetTab = tab || 'health';
+    if (healthModalOpen && healthModalTab === targetTab) {
+      setHealthModalOpen(false);
+      return;
+    }
+    setIsExplainModalOpen(false);
+    setAiModalOpen(false);
+    setOrchestratorModalOpen(false);
+    if (tab) setHealthModalTab(tab);
+    setHealthModalOpen(true);
+  }, [healthModalOpen, healthModalTab]);
+
+
+
+  const handleNodeSelect = useCallback((node: any) => {
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const handleSelectNodeId = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId);
+  }, []);
+
+  const handleExplainRepo = useCallback(async () => {
+    if (isExplainModalOpen) {
+      setIsExplainModalOpen(false);
+      return;
+    }
+    setAiModalOpen(false);
+    setOrchestratorModalOpen(false);
+    setHealthModalOpen(false);
     setIsExplainModalOpen(true);
     if (repoExplanation) return;
     setIsExplaining(true);
@@ -45,9 +111,52 @@ export default function Home(){
     } finally {
       setIsExplaining(false);
     }
-  };
+  }, [isExplainModalOpen, repoExplanation, graph, repoUrl]);
 
-  const handleGenerateDiagram = async () => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        if (isExplainModalOpen || aiModalOpen || healthModalOpen || orchestratorModalOpen) {
+          setIsExplainModalOpen(false);
+          setAiModalOpen(false);
+          setHealthModalOpen(false);
+          setOrchestratorModalOpen(false);
+        } else if (selectedNodeId) {
+          setSelectedNodeId(undefined);
+        }
+      }
+
+      if (!isTyping) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('focus-url-input'));
+        }
+
+        if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+          if (e.key === '1') {
+            e.preventDefault();
+            handleExplainRepo();
+          } else if (e.key === '2') {
+            e.preventDefault();
+            handleOpenAiTab('qa');
+          } else if (e.key === '3') {
+            e.preventDefault();
+            handleOpenOrchestrator();
+          } else if (e.key === '4') {
+            e.preventDefault();
+            handleOpenHealthTab('health');
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExplainModalOpen, aiModalOpen, healthModalOpen, orchestratorModalOpen, selectedNodeId, handleExplainRepo, handleOpenAiTab, handleOpenOrchestrator, handleOpenHealthTab]);
+
+  const handleGenerateDiagram = useCallback(async () => {
     setIsGeneratingDiagram(true);
     setExplainError(null);
     try {
@@ -75,9 +184,9 @@ export default function Home(){
     } finally {
       setIsGeneratingDiagram(false);
     }
-  };
+  }, [graph, repoUrl]);
 
-  async function handleAnalyze() {
+  const handleAnalyze = useCallback(async () => {
     if (!repoUrl) return;
     try {
       setLoading(true);
@@ -126,9 +235,11 @@ export default function Home(){
     } finally {
       setLoading(false);
     }
-  }
+  }, [repoUrl]);
 
-  const selectedNode = graph?.nodes?.find((n: any) => n.id === selectedNodeId);
+  const selectedNode = selectedNodeId === "__MEMORY__" 
+    ? { id: "__MEMORY__", label: "Repository Memory & Architecture", type: "memory" } 
+    : graph?.nodes?.find((n: any) => n.id === selectedNodeId);
 
   const [leftWidth, setLeftWidth] = useState(256);
   const [rightWidth, setRightWidth] = useState(400);
@@ -181,7 +292,39 @@ export default function Home(){
             setRepoUrl("");
             setSelectedNodeId(undefined);
           }}
-          loading={loading} 
+          loading={loading}
+          onExplainRepo={handleExplainRepo}
+          onOpenMemory={() => {
+            if (selectedNodeId === "__MEMORY__") {
+              setSelectedNodeId(undefined);
+              return;
+            }
+            setIsExplainModalOpen(false);
+            setAiModalOpen(false);
+            setOrchestratorModalOpen(false);
+            setHealthModalOpen(false);
+            setSelectedNodeId("__MEMORY__");
+          }}
+          onOpenAiTab={handleOpenAiTab}
+          onOpenOrchestrator={handleOpenOrchestrator}
+          onOpenHealthTab={handleOpenHealthTab}
+          onExportDiagram={handleGenerateDiagram}
+          isGeneratingDiagram={isGeneratingDiagram}
+          activeFeatureTab={
+            isExplainModalOpen
+              ? 'explain'
+              : selectedNodeId === '__MEMORY__'
+              ? 'memory'
+              : aiModalOpen
+              ? aiModalTab
+              : orchestratorModalOpen
+              ? 'engine'
+              : healthModalOpen
+              ? healthModalTab === 'health'
+                ? 'health'
+                : 'hotspots'
+              : null
+          }
         />
       )}
       
@@ -202,31 +345,38 @@ export default function Home(){
         )}
         
         <main className="flex-1 relative bg-transparent overflow-hidden">
-          {graph && !loading && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-              <button 
-                onClick={handleExplainRepo}
-                className="flex items-center gap-2 bg-brand/20 hover:bg-brand/30 border border-brand/30 text-brand px-5 py-2.5 rounded-full font-medium transition-all shadow-lg backdrop-blur-md text-sm cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                Explain Repository
-              </button>
-              <button 
-                onClick={handleGenerateDiagram}
-                disabled={isGeneratingDiagram}
-                className="flex items-center gap-2 bg-brand/20 hover:bg-brand/30 border border-brand/30 text-brand px-5 py-2.5 rounded-full font-medium transition-all shadow-lg backdrop-blur-md text-sm cursor-pointer disabled:opacity-50"
-              >
-                {isGeneratingDiagram ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {isGeneratingDiagram ? "Generating..." : "Generate Diagram"}
-              </button>
-            </div>
-          )}
+
 
           {loading && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white">
-              <div className="w-12 h-12 mb-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xl font-medium text-white">Analyzing Repository...</p>
-              <p className="text-sm mt-2 text-text-muted">This may take a few moments depending on the repository size.</p>
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md p-6 animate-in fade-in duration-300">
+              <div className="flex flex-col items-center gap-6 max-w-4xl w-full">
+                <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 px-4 py-2 rounded-full shadow-lg">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span className="text-white font-semibold text-sm tracking-wide">Analyzing Repository Structure & Generating Interactive AST Map...</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                  {[1, 2, 3].map((item) => (
+                    <div key={item} className="animate-pulse bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3 shadow-xl backdrop-blur-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/10 shrink-0" />
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <div className="h-4 bg-white/15 rounded-md w-3/4" />
+                          <div className="h-3 bg-white/10 rounded-md w-1/2" />
+                        </div>
+                      </div>
+                      <div className="h-10 bg-white/[0.04] rounded-lg border border-white/5 p-2 mt-1 flex flex-col gap-1.5">
+                        <div className="h-2.5 bg-white/10 rounded w-full" />
+                        <div className="h-2.5 bg-white/10 rounded w-4/5" />
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <div className="h-5 w-14 bg-white/10 rounded-full" />
+                        <div className="h-5 w-16 bg-white/10 rounded-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
           
@@ -238,12 +388,50 @@ export default function Home(){
               loading={loading}
             />
           ) : (
-            <RepoGraph 
-              graph={graph} 
-              repoId={repoId}
-              selectedNodeId={selectedNodeId}
-              onNodeSelect={(node) => setSelectedNodeId(node.id)}
-            />
+            <>
+              <RepoGraph 
+                graph={graph} 
+                repoId={repoId}
+                selectedNodeId={selectedNodeId}
+                onNodeSelect={handleNodeSelect}
+              />
+
+              {/* Feature Panels docked inside graph canvas under navbar */}
+              <RepoExplanationModal 
+                isOpen={isExplainModalOpen}
+                onClose={() => setIsExplainModalOpen(false)}
+                repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Repository"}
+                explanation={repoExplanation}
+                isLoading={isExplaining}
+                error={explainError}
+              />
+
+              <AiAgentsModal 
+                isOpen={aiModalOpen}
+                onClose={() => setAiModalOpen(false)}
+                repoId={repoId || repoUrl}
+                graph={graph}
+                initialTab={aiModalTab}
+                onSelectNode={handleSelectNodeId}
+              />
+
+              <HealthDashboardModal 
+                isOpen={healthModalOpen}
+                onClose={() => setHealthModalOpen(false)}
+                repoId={repoId || repoUrl}
+                graph={graph}
+                initialTab={healthModalTab}
+                onSelectNode={handleSelectNodeId}
+              />
+
+              <MultiAgentOrchestratorModal 
+                isOpen={orchestratorModalOpen}
+                onClose={() => setOrchestratorModalOpen(false)}
+                repoId={repoId || repoUrl}
+                graph={graph}
+                onSelectNode={handleSelectNodeId}
+              />
+            </>
           )}
         </main>
 
@@ -261,15 +449,6 @@ export default function Home(){
           </div>
         )}
       </div>
-
-      <RepoExplanationModal 
-        isOpen={isExplainModalOpen}
-        onClose={() => setIsExplainModalOpen(false)}
-        repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Repository"}
-        explanation={repoExplanation}
-        isLoading={isExplaining}
-        error={explainError}
-      />
     </div>
   );
 }

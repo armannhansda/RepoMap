@@ -1,15 +1,15 @@
 import fs from "fs";
-import { scannerRepository } from "./scanner.ts";
+import { scannerRepository, ScannedFile } from "./scanner.ts";
 import { extractFunctions } from "./functionExtractor.ts";
 
 const CALL_REGEX = /\b([a-zA-Z0-9_]+)\s*\(/g;
 
-export async function extractCalls(repoPath: string, functions?: any[]) {
+export async function extractCalls(repoPath: string, functions?: any[], cachedFiles?: ScannedFile[]) {
     if (!functions) {
-        functions = await extractFunctions(repoPath);
+        functions = await extractFunctions(repoPath, cachedFiles);
     }
     
-    const files = await scannerRepository(repoPath);
+    const files = await scannerRepository(repoPath, cachedFiles);
     const calls: any[] = [];
     
     const fileFunctions = new Map<string, any[]>();
@@ -19,7 +19,7 @@ export async function extractCalls(repoPath: string, functions?: any[]) {
     }
 
     for (const file of files) {
-        const content = fs.readFileSync(file.absolutePath, "utf-8");
+        const content = file.content !== undefined ? file.content : fs.readFileSync(file.absolutePath, "utf-8");
         const fnsInFile = fileFunctions.get(file.relativePath) || [];
         
         const lines = content.split("\n");

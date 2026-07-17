@@ -33,8 +33,18 @@ export async function getFileContent(req: Request, res: Response) {
     });
   }
 
+  // Clean symbol suffixes (e.g., "src/foo.ts::myMethod" or "src/bar.ts#line10")
+  let cleanedPath = ((filePath.split("::")[0] || filePath).split("#")[0] || filePath).replace(/^[/\\]+/, "");
+  if (cleanedPath === "external") {
+    return res.json({
+      path: filePath,
+      content: "// External dependency.\n// Source code not in repository.",
+      commitsCount: 0
+    });
+  }
+
   const resolvedRepoPath = path.resolve(repoPath);
-  const fullPath = path.resolve(resolvedRepoPath, filePath);
+  const fullPath = path.resolve(resolvedRepoPath, cleanedPath);
 
   // Prevent Directory Traversal
   if (!fullPath.startsWith(resolvedRepoPath)) {
@@ -43,21 +53,33 @@ export async function getFileContent(req: Request, res: Response) {
     });
   }
 
-  console.log("DEBUG getFileContent:", { repoPath, resolvedRepoPath, filePath, fullPath });
-
   try {
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+      return res.json({
+        path: filePath,
+        content: `// Directory: ${filePath}\n// Select an individual file inside this folder from the graph to inspect source code and commit history.`,
+        commitsCount: 0
+      });
+    }
+
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({
+        error: `File not found in repository: ${cleanedPath}`
+      });
+    }
+
     const content = fs.readFileSync(fullPath, "utf-8");
     
     let commitsCount = 0;
     try {
-      const output = execSync(`git rev-list --count HEAD -- "${filePath}"`, { 
+      const output = execSync(`git rev-list --count HEAD -- "${cleanedPath}"`, { 
         cwd: resolvedRepoPath, 
         encoding: "utf-8" 
       });
       commitsCount = parseInt(output.trim(), 10);
       if (isNaN(commitsCount)) commitsCount = 0;
     } catch (gitError) {
-      console.error(`Failed to get commit count for ${filePath}:`, gitError);
+      console.error(`Failed to get commit count for ${cleanedPath}:`, gitError);
     }
 
     res.json({
