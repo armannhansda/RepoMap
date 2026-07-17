@@ -1,7 +1,7 @@
 import dagre from "dagre";
 
-const nodeWidth = 240;
-const nodeHeight = 80;
+const nodeWidth = 260;
+const nodeHeight = 120;
 
 export function getLayoutedElements(
   nodes: any[],
@@ -13,8 +13,10 @@ export function getLayoutedElements(
 
   dagreGraph.setGraph({
     rankdir: "LR",
-    nodesep: isSubgraph ? 40 : 80,
-    ranksep: isSubgraph ? 40 : 250,
+    align: "UL",
+    nodesep: isSubgraph ? 35 : 45,
+    ranksep: isSubgraph ? 60 : 85,
+    ranker: nodes.length > 250 ? "longest-path" : "network-simplex",
   });
 
   // Add nodes

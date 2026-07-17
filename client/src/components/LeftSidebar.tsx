@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, memo } from "react";
 import { Folder, ChevronRight, ChevronDown, Database, Route, Search, Settings, HelpCircle, File as FileIcon, Code } from "lucide-react";
 
 interface LeftSidebarProps {
@@ -16,13 +16,14 @@ type FileTree = {
   };
 };
 
-export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoName }: LeftSidebarProps) {
+function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }: LeftSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["packages", "src"]));
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Build a nested file tree from the flat nodes array
   const fileTree = useMemo(() => {
     const tree: FileTree = {};
-    const fileNodes = nodes?.filter(n => n.type === "file") || [];
+    const fileNodes = nodes?.filter(n => n.type === "file" && (!searchQuery || (n.path || n.label || "").toLowerCase().includes(searchQuery.toLowerCase()))) || [];
 
     for (const node of fileNodes) {
       const parts = node.path ? node.path.split("/") : [node.label];
@@ -126,35 +127,35 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
         
         {/* Explorer Section */}
         <div>
-          <div className="flex items-center gap-2 px-4 py-2 text-white font-medium bg-white/5 border-l-2 border-white backdrop-blur-sm">
-            <Folder className="w-4 h-4" />
-            <span>Explorer</span>
+          <div className="flex items-center justify-between px-4 py-2 text-white font-medium bg-white/5 border-l-2 border-white backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4" />
+              <span>Explorer</span>
+            </div>
           </div>
+
+          {/* Search Input */}
+          <div className="px-3 pt-2.5 pb-1.5">
+            <div className="relative flex items-center">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 text-white/40 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search graph files..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-8 pr-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
+              />
+            </div>
+          </div>
+
           <div className="py-2">
             {Object.keys(fileTree).length > 0 ? (
               renderTree(fileTree)
             ) : (
-              <p className="px-4 text-text-muted text-xs italic">No files to display</p>
+              <p className="px-4 text-text-muted text-xs italic">{searchQuery ? "No matching files found" : "No files to display"}</p>
             )}
           </div>
         </div>
-
-
-
-        {/* Search Section */}
-        {/* <div className="mt-4">
-          <div className="flex items-center gap-2 px-4 py-2 text-text-muted">
-            <Search className="w-4 h-4" />
-            <span>Search</span>
-          </div>
-          <div className="px-4 pb-2">
-            <input 
-              type="text" 
-              placeholder="Search files..." 
-              className="w-full bg-surface border border-border-subtle rounded py-1 px-2 text-text-main placeholder-text-muted focus:outline-none focus:border-border-focus transition-colors text-xs"
-            />
-          </div>
-        </div> */}
       </div>
 
       {/* Footer */}
@@ -168,3 +169,5 @@ export default function LeftSidebar({ nodes, onNodeSelect, selectedNodeId, repoN
     </div>
   );
 }
+
+export default memo(LeftSidebarComponent);

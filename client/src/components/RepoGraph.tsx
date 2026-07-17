@@ -3,7 +3,7 @@
 import { Background, Controls, MiniMap, ReactFlow, MarkerType, useReactFlow, useNodesState, useEdgesState } from "reactflow";
 import "reactflow/dist/style.css";
 import { getLayoutedElements } from "@/utils/layoutGragh";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import CustomNode from "./CustomNode";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -36,7 +36,7 @@ function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
   return null;
 }
 
-export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
+function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -84,6 +84,20 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       // Deduplicate edges using a Set
       activeEdges = Array.from(new Set([...touchingEdges, ...parentEdges]));
       activeNodes = graph.nodes.filter((n: any) => connectedIds.has(n.id));
+    } else if (graph.nodes.length > 350) {
+      // Large Repo High-Performance Mode (Shneiderman's Mantra: Overview First)
+      // When opening a large repository without a specific node selected, filtering down to
+      // folder and file level prevents Dagre layout blockages and React DOM UI thread freezes.
+      const macroNodes = graph.nodes.filter(
+        (n: any) => n.type === "folder" || n.type === "file"
+      );
+      const cappedNodes = macroNodes.length > 400 ? macroNodes.slice(0, 400) : macroNodes;
+      const cappedNodeIds = new Set(cappedNodes.map((n: any) => n.id));
+
+      activeNodes = cappedNodes;
+      activeEdges = graph.edges.filter(
+        (e: any) => cappedNodeIds.has(e.source) && cappedNodeIds.has(e.target)
+      );
     }
 
     const rawNodes = activeNodes.map((node: any) => ({
@@ -99,16 +113,18 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       id: `${edge.source}-${edge.target}-${index}`,
       source: edge.source,
       target: edge.target,
-      type: 'smoothstep',
+      type: 'default',
       animated: edge.type === 'calls',
       style: {
-        stroke: edge.type === 'calls' ? '#f59e0b' : edge.type === 'contains' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(59, 130, 246, 0.6)',
-        strokeWidth: edge.type === 'calls' ? 1.5 : edge.type === 'contains' ? 1 : 1.5,
-        strokeDasharray: edge.type === 'calls' ? '5,5' : edge.type === 'contains' ? '3,3' : 'none',
+        stroke: edge.type === 'calls' ? '#fbbf24' : edge.type === 'contains' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(96, 165, 250, 0.7)',
+        strokeWidth: edge.type === 'calls' ? 2 : edge.type === 'contains' ? 1.5 : 1.8,
+        strokeDasharray: edge.type === 'calls' ? '6,4' : edge.type === 'contains' ? '4,4' : 'none',
       },
       markerEnd: edge.type === 'contains' ? undefined : {
         type: MarkerType.ArrowClosed,
-        color: edge.type === 'calls' ? '#f59e0b' : 'rgba(59, 130, 246, 0.6)',
+        color: edge.type === 'calls' ? '#fbbf24' : 'rgba(96, 165, 250, 0.7)',
+        width: 18,
+        height: 18,
       },
     }));
 
@@ -129,6 +145,8 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+  const currentPanelOffset = useRef({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const startPanelDrag = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -139,18 +157,25 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       offsetX: dragOffset.x,
       offsetY: dragOffset.y,
     };
+    currentPanelOffset.current = { ...dragOffset };
     
-    const onMouseMove = (e: MouseEvent) => {
-      setDragOffset({
-        x: dragStartRef.current.offsetX + (e.clientX - dragStartRef.current.x),
-        y: dragStartRef.current.offsetY + (e.clientY - dragStartRef.current.y),
-      });
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const newX = dragStartRef.current.offsetX + (moveEvent.clientX - dragStartRef.current.x);
+      const newY = dragStartRef.current.offsetY + (moveEvent.clientY - dragStartRef.current.y);
+      currentPanelOffset.current = { x: newX, y: newY };
+      if (panelRef.current) {
+        const left = hoverPosition.x + 15 + newX;
+        const top = hoverPosition.y + 15 + newY;
+        panelRef.current.style.left = `${left}px`;
+        panelRef.current.style.top = `${top}px`;
+      }
     };
     
     const onMouseUp = () => {
       setIsPanelDragging(false);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      setDragOffset({ ...currentPanelOffset.current });
     };
     
     document.addEventListener('mousemove', onMouseMove);
@@ -194,8 +219,12 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
       setHoveredNodeContent(null);
       return;
     }
+    if (hoveredNode.type === "folder" || hoveredNode.type === "memory") {
+      setHoveredNodeContent(`// Directory/Module: ${hoveredNode.label}`);
+      return;
+    }
     const filePath = hoveredNode.path || hoveredNode.file;
-    if (filePath === "external") return;
+    if (!filePath || filePath === "external") return;
     
     let isMounted = true;
     const fetchContent = async () => {
@@ -254,32 +283,110 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
   }
 
   const [isDragging, setIsDragging] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const maskRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current || !maskRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    maskRef.current.style.maskImage = `radial-gradient(circle 200px at ${x}px ${y}px, black 0%, transparent 100%)`;
+    maskRef.current.style.webkitMaskImage = `radial-gradient(circle 200px at ${x}px ${y}px, black 0%, transparent 100%)`;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!maskRef.current) return;
+    maskRef.current.style.maskImage = `radial-gradient(circle 200px at -1000px -1000px, black 0%, transparent 100%)`;
+    maskRef.current.style.webkitMaskImage = `radial-gradient(circle 200px at -1000px -1000px, black 0%, transparent 100%)`;
+  }, []);
+
+  const isLowZoomRef = useRef(false);
+  const handleMove = useCallback((_: any, viewport: { x: number; y: number; zoom: number }) => {
+    if (!containerRef.current) return;
+    if (viewport.zoom < 0.6 && !isLowZoomRef.current) {
+      isLowZoomRef.current = true;
+      containerRef.current.classList.add('lod-low');
+    } else if (viewport.zoom >= 0.6 && isLowZoomRef.current) {
+      isLowZoomRef.current = false;
+      containerRef.current.classList.remove('lod-low');
+    }
+  }, []);
+
+  const { displayNodes, displayEdges } = useMemo(() => {
+    const activeId = hoveredNode?.id || selectedNodeId;
+    if (!activeId) {
+      return { displayNodes: nodes, displayEdges: edges };
+    }
+
+    const connectedNodeIds = new Set<string>();
+    connectedNodeIds.add(activeId);
+
+    const highlightedEdges = edges.map((e) => {
+      const isConnected = e.source === activeId || e.target === activeId;
+      if (isConnected) {
+        connectedNodeIds.add(e.source);
+        connectedNodeIds.add(e.target);
+        return {
+          ...e,
+          animated: true,
+          style: {
+            ...e.style,
+            strokeWidth: (Number(e.style?.strokeWidth) || 1.5) + 1,
+            opacity: 1,
+          },
+          zIndex: 10,
+        };
+      } else {
+        return {
+          ...e,
+          style: {
+            ...e.style,
+            opacity: 0.12,
+          },
+          zIndex: 1,
+        };
+      }
     });
-  };
+
+    const highlightedNodes = nodes.map((n) => {
+      const isConnected = connectedNodeIds.has(n.id);
+      return {
+        ...n,
+        style: {
+          ...n.style,
+          opacity: isConnected ? 1 : 0.3,
+          transition: 'opacity 0.2s ease-in-out',
+        },
+      };
+    });
+
+    return { displayNodes: highlightedNodes, displayEdges: highlightedEdges };
+  }, [nodes, edges, hoveredNode, selectedNodeId]);
 
   return (
     <div 
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => setMousePos({ x: -1000, y: -1000 })}
+      onMouseLeave={handleMouseLeave}
       className="w-full h-full relative bg-bg-base"
     >
+      {/* Large Repo Mode Floating Notice */}
+      {!selectedNodeId && graph?.nodes?.length > 350 && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-black/80 border border-white/20 text-white px-5 py-2.5 rounded-full text-xs font-mono backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-in fade-in duration-300">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>⚡ Large Repo Mode Active: Showing Macro Directory & File Map ({nodes.length} visible of {graph.nodes.length} total AST nodes). Click any file to expand internal functions.</span>
+        </div>
+      )}
+
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={displayNodes}
+        edges={displayEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
+        onMove={handleMove}
         onNodeClick={(_, node) => onNodeSelect(node)}
         onNodeDragStart={() => {
           setIsDragging(true);
@@ -312,10 +419,11 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         
         {/* Highlighted Bright Background with mask */}
         <div 
+          ref={maskRef}
           className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-300"
           style={{
-            maskImage: `radial-gradient(circle 200px at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 100%)`,
-            WebkitMaskImage: `radial-gradient(circle 200px at ${mousePos.x}px ${mousePos.y}px, black 0%, transparent 100%)`
+            maskImage: `radial-gradient(circle 200px at -1000px -1000px, black 0%, transparent 100%)`,
+            WebkitMaskImage: `radial-gradient(circle 200px at -1000px -1000px, black 0%, transparent 100%)`
           }}
         >
           <Background color="rgba(255, 255, 255, 0.4)" gap={16} size={1} />
@@ -331,6 +439,7 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
         {/* Hover Tooltip */}
         {hoveredNode && !isDragging && (
           <div 
+            ref={panelRef}
             className="fixed z-50 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl p-3 w-72 transition-opacity"
             style={{ left: hoverPosition.x + 15 + dragOffset.x, top: hoverPosition.y + 15 + dragOffset.y }}
             onMouseEnter={() => {
@@ -500,3 +609,5 @@ export default function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId 
     </div>
   );
 }
+
+export default React.memo(RepoGraph);

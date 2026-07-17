@@ -1,5 +1,5 @@
 import fs from "fs";
-import { scannerRepository } from "./scanner.ts";
+import { scannerRepository, ScannedFile } from "./scanner.ts";
 import { resolveImportPath } from "./resolveImports.ts";
 import path from "path";
 
@@ -13,12 +13,12 @@ const IMPORT_REGEXES = [
   /#include\s+["<](.*?)[">]/g,
 ];
 
-export async function extractImports(repoPath: string) {
-  const files = await scannerRepository(repoPath);
+export async function extractImports(repoPath: string, cachedFiles?: ScannedFile[]) {
+  const files = await scannerRepository(repoPath, cachedFiles);
   const dependencyMap: any[] = [];
 
   for (const file of files) {
-    const content = fs.readFileSync(file.absolutePath, "utf-8");
+    const content = file.content !== undefined ? file.content : fs.readFileSync(file.absolutePath, "utf-8");
     const resolvedImports = new Set<string>();
 
     for (const regex of IMPORT_REGEXES) {

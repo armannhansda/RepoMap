@@ -55,3 +55,74 @@ export async function generateArchitectureDiagram(repoName: string, files: any[]
   });
   return response.json();
 }
+
+export async function getRepoMemory(repoId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/memory?repoId=${encodeURIComponent(repoId)}`);
+  return response.json();
+}
+
+export async function simulateImpactAnalysis(payload: { repoId: string; targetId: string; changeType: 'MODIFY' | 'DELETE'; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/impact-analysis`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function planTask(payload: { repoId: string; prompt: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/plan-task`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function queryArchitecture(payload: { repoId: string; question: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/query-architecture`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function performCodeReviewApi(payload: { repoId: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/code-review`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function calculateHealthScoreApi(payload: { repoId: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/health-score`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function runOrchestrationApi(payload: { repoId: string; prompt: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/orchestrate`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}

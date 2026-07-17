@@ -1,5 +1,6 @@
 import { X, Sparkles, Loader2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import DraggableCard from "./DraggableCard";
 
 interface Props {
   isOpen: boolean;
@@ -14,53 +15,35 @@ export default function RepoExplanationModal({ isOpen, onClose, repoName, explan
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end pointer-events-none">
-      <div 
-        className="bg-black/90 backdrop-blur-md border-l border-white/10 shadow-2xl w-full max-w-md h-full flex flex-col overflow-hidden text-text-main animate-in slide-in-from-right duration-300 pointer-events-auto"
-      >
-        
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-brand/20 border border-brand/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-brand" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-white">Repository Overview</h2>
-              <p className="text-xs text-text-muted">{repoName}</p>
-            </div>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="p-1.5 text-text-muted hover:text-white hover:bg-white/10 rounded-md transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-black/40">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-4 text-text-muted">
-              <Loader2 className="w-8 h-8 animate-spin text-brand" />
-              <p className="animate-pulse">Generating architectural overview for {repoName}...</p>
-            </div>
-          ) : error ? (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              {error}
-            </div>
-          ) : explanation ? (
-            <div className="prose prose-invert prose-sm max-w-none text-text-muted">
-              <ReactMarkdown>{explanation}</ReactMarkdown>
-            </div>
-          ) : (
-            <div className="text-center text-text-muted h-48 flex items-center justify-center">
-              No explanation generated.
-            </div>
-          )}
-        </div>
-
+    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[640px]">
+      {/* Title */}
+      <div className="flex items-center gap-2 mb-3 pr-8 cursor-move">
+        <Sparkles className="w-4 h-4 text-white/80 shrink-0" />
+        <h2 className="text-sm font-semibold text-white tracking-tight">Repository Overview</h2>
+        <span className="text-[11px] font-mono text-text-muted">({repoName})</span>
       </div>
-    </div>
+
+      {/* Content */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-text-muted">
+            <div className="w-7 h-7 border-2 border-white/60 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-medium text-white">Generating architectural overview for {repoName}...</p>
+          </div>
+        ) : error ? (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-xs">
+            {error}
+          </div>
+        ) : explanation ? (
+          <div className="prose prose-invert prose-sm max-w-none text-gray-200 text-xs leading-relaxed font-sans">
+            <ReactMarkdown>{explanation}</ReactMarkdown>
+          </div>
+        ) : (
+          <div className="text-center text-text-muted text-xs py-12 flex items-center justify-center">
+            No explanation generated.
+          </div>
+        )}
+      </div>
+    </DraggableCard>
   );
 }

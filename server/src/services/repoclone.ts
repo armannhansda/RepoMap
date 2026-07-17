@@ -28,11 +28,11 @@ export async function cloneRepository(repoUrl:string) {
         recursive: true,
       })
 
-      console.log("clonning into ", repoPath)
+      console.log("cloning into ", repoPath);
       
-      await git.clone(repoUrl, repoPath);
+      await git.clone(repoUrl, repoPath, ["--depth", "1", "--single-branch"]);
       
-      console.log("clonning complete")
+      console.log("cloning complete");
       return {
         repoName,
         repoPath,

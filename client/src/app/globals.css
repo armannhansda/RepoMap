@@ -58,3 +58,24 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.3);
 }
+
+/* Zoom Level of Detail (LOD) Performance Rules */
+.lod-low .custom-node-outer {
+  min-width: 96px !important;
+  max-width: 96px !important;
+  height: 96px !important;
+  border-radius: 9999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  transform: translate(82px, 12px) !important;
+}
+.lod-low .lod-full-card {
+  display: none !important;
+}
+.lod-low .lod-compact-circle {
+  display: flex !important;
+}
