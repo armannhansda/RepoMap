@@ -21,7 +21,7 @@ const initialEdges: Edge[] = [
   { id: 'e1-3', source: '1', target: '3', animated: true, type: 'smoothstep', style: { stroke: 'rgba(255,255,255,0.4)', strokeWidth: 1.5 } },
 ];
 
-const nodeTypes = { custom: CustomNode };
+const initialNodeTypes = { custom: CustomNode };
 
 function ScrollReveal({
   children,
@@ -75,15 +75,15 @@ function ScrollReveal({
 
 function SectionConnector({ number, label }: { number: string; label: string }) {
   return (
-    <ScrollReveal direction="zoom" className="w-full flex flex-col items-center justify-center my-12 md:my-16 relative z-10 select-none">
-      <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/40 to-white/20" />
-      <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-black/90 border border-white/20 shadow-[0_0_30px_rgba(255,255,255,0.08)] text-xs font-mono text-gray-300 backdrop-blur-xl">
-        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-        <span className="text-white font-bold">NODE {number}</span>
-        <span className="text-gray-600">──</span>
-        <span className="uppercase tracking-wider text-white font-semibold">{label}</span>
+    <ScrollReveal direction="zoom" className="w-full flex flex-col items-center justify-center my-6 sm:my-8 relative z-10 select-none">
+      <div className="w-px h-6 sm:h-8 bg-gradient-to-b from-transparent via-white/20 to-white/40" />
+      <div className="flex items-center gap-3 px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-black/90 border border-white/15 shadow-[0_0_40px_rgba(255,255,255,0.06)] text-xs font-mono text-gray-300 backdrop-blur-xl hover:border-white/30 transition-colors my-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+        <span className="text-white font-bold tracking-wider">{number}</span>
+        <span className="text-gray-600">/</span>
+        <span className="uppercase tracking-widest text-gray-200 font-semibold">{label}</span>
       </div>
-      <div className="w-px h-16 bg-gradient-to-b from-white/20 via-white/40 to-transparent" />
+      <div className="w-px h-6 sm:h-8 bg-gradient-to-b from-white/40 via-white/20 to-transparent" />
     </ScrollReveal>
   );
 }
@@ -96,6 +96,10 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }: LandingPageProps) {
+  const nodeTypes = React.useMemo(() => initialNodeTypes, []);
+  const proOptions = React.useMemo(() => ({ hideAttribution: true }), []);
+  const defaultViewport = React.useMemo(() => ({ x: 0, y: 50, zoom: 0.8 }), []);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [mousePos, setMousePos] = React.useState({ x: -1000, y: -1000 });
@@ -262,28 +266,32 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-white rounded-full blur-[250px] opacity-[0.04]" />
       </div>
 
-      {/* Main Content (Full Width across Upper Most Part) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 pt-16 sm:pt-20 lg:pt-24 pb-12 sm:pb-16 mx-auto flex flex-col items-center z-10">
+      {/* Main Content (Hero + Search + Quick Try + Hook Strip) */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 pt-10 sm:pt-14 lg:pt-16 pb-8 sm:pb-12 mx-auto flex flex-col items-center z-10">
 
         {/* Branding */}
-        <div className="flex items-center gap-2 sm:gap-3 font-bold text-base sm:text-lg text-white mb-10 sm:mb-14 lg:mb-16">
+        <div className="flex items-center gap-2.5 font-bold text-base sm:text-lg text-white mb-6 sm:mb-8 lg:mb-10">
           <Image src="/icon.svg" alt="RepoMap Logo" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 opacity-90" />
-          <span className="text-lg sm:text-xl tracking-wide">RepoMap</span>
+          <span className="text-lg sm:text-xl tracking-wider font-mono">RepoMap</span>
         </div>
 
         {/* Hero */}
         <div className="text-center mb-8 sm:mb-10 max-w-[1400px] mx-auto relative px-2">
-          <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl xl:text-5xl 2xl:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 text-white drop-shadow-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono tracking-wide text-gray-300 mb-4 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span>AST-Driven Interactive Knowledge Graph</span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight mb-5 sm:mb-6 text-white drop-shadow-2xl">
             Google Maps for <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500">Source Code.</span>
           </h1>
-          <p className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-gray-400 max-w-2xl xl:max-w-3xl mx-auto font-medium leading-relaxed drop-shadow-md">
-            Transform your repository into an explorable knowledge graph. Zoom from system architecture to individual function calls with zero configuration.
+          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-400 max-w-2xl xl:max-w-3xl mx-auto font-normal leading-relaxed drop-shadow-md">
+            Turn dense repositories into explorable 2D spatial maps. Zoom effortlessly from macro architecture down to AST function calls with zero configuration.
           </p>
         </div>
 
-        {/* Search (Spacious Full Width) */}
+        {/* Search Input Bar */}
         <div className="w-full max-w-2xl lg:max-w-3xl 2xl:max-w-4xl mb-6 sm:mb-8 relative z-20 px-2">
-          <div className="relative flex items-center bg-black/60 border border-white/10 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-[0_0_50px_rgba(255,255,255,0.05)] transition-all hover:border-white/20 focus-within:border-white/40 focus-within:bg-black/80">
+          <div className="relative flex items-center bg-black/60 border border-white/15 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 shadow-[0_0_50px_rgba(255,255,255,0.05)] transition-all hover:border-white/25 focus-within:border-white/40 focus-within:bg-black/90">
             <div className="pl-3 sm:pl-5 pr-2 sm:pr-3 text-gray-400">
               <Link2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
@@ -291,7 +299,7 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
               type="text"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="Enter a GitHub repository URL..."
+              placeholder="Enter any public GitHub repository URL..."
               className="flex-1 bg-transparent border-none outline-none text-white text-xs sm:text-sm md:text-base lg:text-base 2xl:text-lg font-mono placeholder-gray-500 py-2 sm:py-3 lg:py-3.5 px-2"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onAnalyze();
@@ -300,7 +308,7 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             <button
               onClick={onAnalyze}
               disabled={loading || !repoUrl}
-              className="bg-white hover:bg-gray-200 text-black font-semibold py-2 sm:py-2.5 lg:py-3 px-4 sm:px-6 lg:px-8 rounded-lg sm:rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm lg:text-base ml-1.5 sm:ml-2 shrink-0"
+              className="bg-white hover:bg-gray-200 text-black font-semibold py-2 sm:py-2.5 lg:py-3 px-4 sm:px-6 lg:px-8 rounded-lg sm:rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm lg:text-base ml-1.5 sm:ml-2 shrink-0 shadow-md"
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
@@ -316,122 +324,150 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
           </div>
         </div>
 
-        {/* One-Click Quick Try Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-400 mb-12 sm:mb-14 lg:mb-16 z-20 px-4">
+        {/* Quick Try Pills */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-400 mb-8 sm:mb-10 lg:mb-12 z-20 px-4">
           <span className="font-mono text-gray-500 uppercase tracking-wider font-semibold mr-1">Quick Try:</span>
           <button
             onClick={() => setRepoUrl("https://github.com/developit/mitt")}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2 font-mono shadow-sm text-xs sm:text-sm"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2 font-mono shadow-sm text-xs sm:text-sm"
           >
-            <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
             developit/mitt
           </button>
           <button
             onClick={() => setRepoUrl("https://github.com/expressjs/express")}
-            className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2.5 font-mono shadow-sm"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2 font-mono shadow-sm text-xs sm:text-sm"
           >
-            <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
             expressjs/express
           </button>
           <button
             onClick={() => setRepoUrl("https://github.com/sindresorhus/ky")}
-            className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2.5 font-mono shadow-sm"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2 font-mono shadow-sm text-xs sm:text-sm"
           >
-            <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
             sindresorhus/ky
           </button>
         </div>
 
-        {/* 3-Second Psychology & Value Hook Strip (Full Width across Upper Most Part) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full max-w-[1600px] 2xl:max-w-[2000px] mx-auto mb-6 sm:mb-8 z-20">
-          <div className="bg-white/[0.03] border border-white/15 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 2xl:p-8 flex items-start gap-4 sm:gap-5 text-left backdrop-blur-xl transition-all hover:border-white/30">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
-              <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
+        {/* 3-Second Psychology & Value Hook Strip (Open Cardless Editorial Layout) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 w-full max-w-[1500px] mx-auto mb-10 sm:mb-14 z-20 pt-6 border-t border-white/10">
+          <div className="border-l-2 border-red-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
             <div>
-              <div className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1 lg:mb-1.5">The Pain (Miller&apos;s Law)</div>
-              <div className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-300 leading-relaxed font-sans">
-                Human working memory holds only ~7 items. Tracing code across dozens of linear tabs forces severe disorientation and memory overload.
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-red-400 font-bold">
+                  THE PAIN // MILLER&apos;S LAW
+                </span>
+                <Compass className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
               </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Linear Tab Disorientation</h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
+                Human working memory holds only ~7 items. Tracing code across dozens of open tabs forces continuous cognitive re-indexing and mental fatigue.
+              </p>
+            </div>
+            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
+              <span>Cognitive Load: Overwhelmed</span>
+              <span className="text-red-400 font-bold">45+ Tabs</span>
             </div>
           </div>
 
-          <div className="bg-white/[0.03] border border-white/15 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 2xl:p-8 flex items-start gap-4 sm:gap-5 text-left backdrop-blur-xl transition-all hover:border-white/30">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
-              <Map className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
+          <div className="border-l-2 border-blue-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
             <div>
-              <div className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1 lg:mb-1.5">The Solution (Spatial Recall)</div>
-              <div className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-300 leading-relaxed font-sans">
-                Our brain remembers physical locations effortlessly. Mapping AST modules onto a deterministic 2D grid makes code navigation intuitive.
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-blue-400 font-bold">
+                  THE SOLUTION // SPATIAL GRID
+                </span>
+                <Map className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
               </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Deterministic 2D Cartography</h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
+                Human spatial memory recalls physical coordinates effortlessly. Mapping AST modules onto a persistent 2D grid makes navigation instinctive.
+              </p>
+            </div>
+            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
+              <span>Spatial Accuracy: 100%</span>
+              <span className="text-blue-400 font-bold">Fixed Layout</span>
             </div>
           </div>
 
-          <div className="bg-white/[0.03] border border-white/15 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 2xl:p-8 flex items-start gap-4 sm:gap-5 text-left backdrop-blur-xl transition-all hover:border-white/30">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
-              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
+          <div className="border-l-2 border-emerald-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
             <div>
-              <div className="text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1 lg:mb-1.5">The Payoff (Flow State)</div>
-              <div className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-300 leading-relaxed font-sans">
-                Onboard in hours instead of weeks. Inspect function chains and query multi-agent AI side-by-side with zero context switching.
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
+                  THE PAYOFF // FLOW STATE
+                </span>
+                <Zap className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
               </div>
+              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Split-Screen Code & AI Mastery</h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
+                Onboard in hours instead of weeks. Inspect function call chains and query multi-agent AI side-by-side without leaving your visual context.
+              </p>
+            </div>
+            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
+              <span>Context Switching: Zero</span>
+              <span className="text-emerald-400 font-bold">0 Tabs</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Side-by-Side: How It Works & Graph */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto mb-20 sm:mb-28 lg:mb-32 z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 2xl:gap-24 items-center max-w-[1600px] 2xl:max-w-[2000px] mx-auto">
+      {/* Side-by-Side: How It Works & ReactFlow Graph */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto mb-12 sm:mb-16 lg:mb-20 z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center max-w-[1500px] mx-auto">
 
-          {/* Left Side: How It Works */}
+          {/* Left Side: How It Works Steps */}
           <div className="lg:col-span-5 flex flex-col justify-center">
-            <div className="mb-8 sm:mb-10 text-left">
-              <h2 className="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-bold text-white mb-3 sm:mb-4">How it works</h2>
-              <p className="text-sm sm:text-base lg:text-base xl:text-lg text-gray-400">From a standard GitHub URL to an interactive knowledge graph in seconds.</p>
+            <div className="mb-8 text-left">
+              <span className="text-[11px] font-mono uppercase tracking-widest text-gray-400 font-bold mb-2 block">QUICK ONBOARDING</span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">How it works</h2>
+              <p className="text-xs sm:text-sm lg:text-base text-gray-400 leading-relaxed">From a standard GitHub URL to an interactive knowledge graph in seconds.</p>
             </div>
 
-            <div className="space-y-6 sm:space-y-8 lg:space-y-10 relative before:absolute before:inset-0 before:ml-6 sm:before:ml-8 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-              <div className="relative flex items-start gap-4 sm:gap-6 z-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-xl sm:rounded-2xl bg-black border border-white/10 flex items-center justify-center shadow-xl">
-                  <Link2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="space-y-6 sm:space-y-8 relative before:absolute before:inset-0 before:ml-6 sm:before:ml-7 before:-translate-x-px before:h-full before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/15 before:to-transparent">
+              <div className="relative flex items-start gap-4 sm:gap-5 z-10">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-black border border-white/15 flex items-center justify-center shadow-xl text-xs sm:text-sm font-mono font-bold text-white">
+                  01
                 </div>
-                <div className="pt-1 sm:pt-2 text-left">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">1. Connect Repo</h3>
-                  <p className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-400 leading-relaxed">Paste any public GitHub repository URL. No manifest files or configuration required.</p>
-                </div>
-              </div>
-
-              <div className="relative flex items-start gap-4 sm:gap-6 z-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-xl sm:rounded-2xl bg-black border border-white/10 flex items-center justify-center shadow-xl">
-                  <GitMerge className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="pt-1 sm:pt-2 text-left">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">2. Map Dependencies</h3>
-                  <p className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-400 leading-relaxed">Our engine parses the AST, maps imports, and builds a comprehensive dependency graph.</p>
+                <div className="pt-1 text-left">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    Connect Repo <Link2 className="w-4 h-4 text-gray-400" />
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">Paste any public GitHub repository URL. No manifest files or configuration required.</p>
                 </div>
               </div>
 
-              <div className="relative flex items-start gap-4 sm:gap-6 z-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 rounded-xl sm:rounded-2xl bg-black border border-white/10 flex items-center justify-center shadow-xl">
-                  <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="relative flex items-start gap-4 sm:gap-5 z-10">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-black border border-white/15 flex items-center justify-center shadow-xl text-xs sm:text-sm font-mono font-bold text-white">
+                  02
                 </div>
-                <div className="pt-1 sm:pt-2 text-left">
-                  <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 sm:mb-2">3. Explore Visually</h3>
-                  <p className="text-xs sm:text-sm lg:text-sm 2xl:text-base text-gray-400 leading-relaxed">Navigate your codebase spatially. Zoom in to read inline code, zoom out for architecture.</p>
+                <div className="pt-1 text-left">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    Map Dependencies <GitMerge className="w-4 h-4 text-gray-400" />
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">Our engine parses the AST, maps imports, and builds a comprehensive dependency graph.</p>
+                </div>
+              </div>
+
+              <div className="relative flex items-start gap-4 sm:gap-5 z-10">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-black border border-white/15 flex items-center justify-center shadow-xl text-xs sm:text-sm font-mono font-bold text-white">
+                  03
+                </div>
+                <div className="pt-1 text-left">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1 flex items-center gap-2">
+                    Explore Visually <Eye className="w-4 h-4 text-gray-400" />
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">Navigate your codebase spatially. Zoom in to read inline code, zoom out for architecture.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Side: Graph */}
+          {/* Right Side: Graph Canvas */}
           <div
             ref={graphContainerRef}
             onMouseMove={handleGraphMouseMove}
             onMouseLeave={() => setGraphMousePos({ x: -1000, y: -1000 })}
-            className="lg:col-span-7 w-full h-[380px] sm:h-[440px] lg:h-[460px] xl:h-[500px] relative rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/10 bg-black/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden pointer-events-auto select-none"
+            className="lg:col-span-7 w-full h-[380px] sm:h-[440px] lg:h-[480px] relative rounded-3xl border border-white/15 bg-black/40 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] overflow-hidden pointer-events-auto select-none"
           >
             {/* Inner Dot Grid for Graph Canvas */}
             <div className="absolute inset-0 z-0" style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
@@ -447,14 +483,14 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
               }}
             />
 
-            <div className="absolute inset-0 opacity-90 cursor-grab active:cursor-grabbing z-10">
+            <div className="absolute inset-0 opacity-95 cursor-grab active:cursor-grabbing z-10">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
-                proOptions={{ hideAttribution: true }}
+                proOptions={proOptions}
                 zoomOnScroll={false}
                 panOnScroll={false}
                 panOnDrag={true}
@@ -462,133 +498,137 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
                 nodesConnectable={false}
                 elementsSelectable={true}
                 preventScrolling={false}
-                defaultViewport={{ x: 0, y: 50, zoom: 0.8 }}
+                defaultViewport={defaultViewport}
               />
+            </div>
+            <div className="absolute bottom-4 right-4 z-20 bg-black/80 border border-white/15 px-3 py-1.5 rounded-full text-[11px] font-mono text-gray-400 backdrop-blur-md">
+              Drag to Pan • Click Nodes to Inspect
             </div>
           </div>
         </div>
       </div>
 
-      
+
 
       <SectionConnector number="01" label="Why & All About RepoMap" />
 
-      {/* Section 1: Why RepoMap & All About The Tool (Split Terminal Comparison & Floating HUD Strip - ZERO CARDS) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-16 sm:pb-20">
-        <ScrollReveal direction="up" className="max-w-[1600px] 2xl:max-w-[2000px] mx-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-10 sm:mb-16 gap-4 sm:gap-6">
+      {/* Section 1: Why RepoMap & All About The Tool */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
+        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 sm:mb-8 gap-4 sm:gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2.5 sm:mb-3">
-                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
+                <Sparkles className="w-3.5 h-3.5 text-white" />
                 <span>Why RepoMap & All About The Tool</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
                 Escape Tab Fatigue & Mental Overload
               </h2>
             </div>
-            <div className="text-gray-400 text-xs sm:text-sm lg:text-base xl:text-lg max-w-xl">
-              See the immediate difference between traditional file browsing and spatial AST graph cartography.
+            <div className="text-gray-400 text-xs sm:text-sm lg:text-base max-w-xl font-normal">
+              See the immediate difference between linear file browsing and spatial 2D AST graph cartography.
             </div>
           </div>
 
-          {/* Split-Screen Terminal / IDE Comparison (No Cards) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-20 items-stretch">
+          {/* Split-Screen Terminal / IDE Comparison (Open Cardless Side-by-Side Layout) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 mb-10 sm:mb-12 items-start border-y border-white/15 py-6 sm:py-8">
             {/* Before: Traditional Browsing */}
-            <div className="bg-black/90 border border-white/20 rounded-3xl p-6 md:p-8 font-mono relative overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.03)] flex flex-col justify-between">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.02] rounded-full blur-3xl pointer-events-none" />
-              <div>
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-green-500/80" />
-                    <span className="ml-2 text-gray-300 font-semibold">VS Code — Linear Directory Tree</span>
-                  </div>
-                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded border border-white/20">45 Tabs Open</span>
+            <div className="font-mono space-y-6">
+              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                  <span className="text-gray-300 font-bold font-sans">VS Code — Linear Directory Tree</span>
                 </div>
-
-                <div className="space-y-3 text-sm text-gray-400">
-                  <div className="text-gray-500">├── controllers/</div>
-                  <div className="pl-4 text-gray-300">├── UserController.ts <span className="text-white text-xs bg-white/10 px-2 py-0.5 rounded ml-2 border border-white/20">! Memory limit</span></div>
-                  <div className="pl-4 text-gray-300">├── AuthController.ts <span className="text-gray-300 text-xs bg-white/10 px-2 py-0.5 rounded ml-2 border border-white/20">? Where called?</span></div>
-                  <div className="text-gray-500">├── services/</div>
-                  <div className="pl-4 text-gray-300">├── BillingService.ts <span className="text-white text-xs bg-white/10 px-2 py-0.5 rounded ml-2 border border-white/20">! Circular import</span></div>
-                  <div className="text-gray-500">└── models/</div>
-                  <div className="pl-4 text-gray-500">└── UserSchema.prisma</div>
-                </div>
-
-                <div className="mt-8 p-4 rounded-xl bg-white/[0.03] border border-white/15 text-xs text-gray-300 leading-relaxed font-sans">
-                  <strong>The Problem:</strong> Linear reading forces your working memory to hold thousands of lines. Tracing an API call requires jumping across dozens of disconnected tabs, causing severe disorientation and slow onboarding.
-                </div>
+                <span className="text-red-400 font-bold bg-red-500/10 px-2.5 py-1 rounded border border-red-500/20 text-[11px]">45 Tabs Open</span>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-500 uppercase tracking-wider font-sans">
-                <span>Cognitive Load: Critical</span>
-                <span>Context: Lost</span>
+
+              <div className="space-y-3 text-xs sm:text-sm text-gray-400 pl-2">
+                <div className="text-gray-500">├── controllers/</div>
+                <div className="pl-4 text-gray-300 flex items-center justify-between">
+                  <span>├── UserController.ts</span>
+                  <span className="text-red-400 text-[10px] bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">! Memory limit</span>
+                </div>
+                <div className="pl-4 text-gray-300 flex items-center justify-between">
+                  <span>├── AuthController.ts</span>
+                  <span className="text-amber-400 text-[10px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">? Where called?</span>
+                </div>
+                <div className="text-gray-500">├── services/</div>
+                <div className="pl-4 text-gray-300 flex items-center justify-between">
+                  <span>├── BillingService.ts</span>
+                  <span className="text-red-400 text-[10px] bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">! Circular import</span>
+                </div>
+                <div className="text-gray-500">└── models/</div>
+                <div className="pl-4 text-gray-500">└── UserSchema.prisma</div>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 text-xs text-gray-400 leading-relaxed font-sans">
+                <strong className="text-white">The Problem:</strong> Linear reading forces your working memory to hold thousands of lines. Tracing an API call requires jumping across dozens of disconnected tabs, causing severe disorientation.
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-wider font-mono pt-2">
+                <span>Cognitive Load: <strong className="text-red-400">Critical</strong></span>
+                <span>Context: <strong className="text-red-400">Lost</strong></span>
               </div>
             </div>
 
             {/* After: RepoMap Spatial Graph */}
-            <div className="bg-black/90 border border-white/20 rounded-3xl p-6 md:p-8 font-mono relative overflow-hidden shadow-[0_0_60px_rgba(255,255,255,0.05)] flex flex-col justify-between">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.04] rounded-full blur-3xl pointer-events-none" />
-              <div>
-                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-green-500/80" />
-                    <span className="ml-2 text-white font-semibold">RepoMap — Spatial 2D Knowledge Graph</span>
-                  </div>
-                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded border border-white/20">0 Tab Switching</span>
+            <div className="font-mono space-y-6">
+              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                  <span className="text-white font-bold font-sans">RepoMap — Spatial 2D Knowledge Graph</span>
                 </div>
+                <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 text-[11px]">0 Tab Switching</span>
+              </div>
 
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/15 text-sm space-y-4">
-                  <div className="flex items-center justify-between text-white bg-white/5 p-3 rounded-xl border border-white/15">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-white" />
-                      <strong>[Entry]</strong> routes/users.ts
-                    </span>
-                    <span className="text-xs text-white bg-white/10 border border-white/20 px-2 py-0.5 rounded">Line 42</span>
-                  </div>
-                  <div className="flex items-center justify-center text-gray-500 text-xs">
-                    ├── (AST Linked Call) ──►
-                  </div>
-                  <div className="flex items-center justify-between text-white bg-white/5 p-3 rounded-xl border border-white/15">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-white" />
-                      <strong>[Auth]</strong> lib/jwt.ts : verifySession()
-                    </span>
-                    <span className="text-xs text-white bg-white/10 border border-white/20 px-2 py-0.5 rounded">14 Callers</span>
-                  </div>
+              <div className="text-xs sm:text-sm space-y-3 pl-2">
+                <div className="flex items-center justify-between text-white bg-white/[0.03] p-3 rounded-xl border border-white/15">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <strong className="text-white">[Entry]</strong> routes/users.ts
+                  </span>
+                  <span className="text-[10px] text-gray-300 bg-white/10 border border-white/20 px-2 py-0.5 rounded font-mono">Line 42</span>
                 </div>
-
-                <div className="mt-8 p-4 rounded-xl bg-white/[0.03] border border-white/15 text-xs text-gray-200 leading-relaxed font-sans">
-                  <strong>The Solution:</strong> RepoMap extracts exact Abstract Syntax Tree (AST) imports right in your browser and maps them onto a deterministic spatial grid. You instantly see how modules connect without losing context.
+                <div className="flex items-center justify-center text-gray-500 text-[11px] font-mono">
+                  ├── (AST Verified Call) ──►
+                </div>
+                <div className="flex items-center justify-between text-white bg-white/[0.03] p-3 rounded-xl border border-white/15">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-400" />
+                    <strong className="text-white">[Auth]</strong> lib/jwt.ts : verifySession()
+                  </span>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">14 Callers</span>
                 </div>
               </div>
-              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-gray-400 uppercase tracking-wider font-sans">
-                <span>Cognitive Load: Zero</span>
-                <span>Spatial Clarity: 100%</span>
+
+              <div className="pt-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed font-sans">
+                <strong className="text-white">The Solution:</strong> RepoMap extracts exact Abstract Syntax Tree (AST) imports right in your browser and maps them onto a deterministic spatial grid. You instantly see how modules connect without losing context.
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-gray-400 uppercase tracking-wider font-mono pt-2">
+                <span>Cognitive Load: <strong className="text-emerald-400">Zero</strong></span>
+                <span>Spatial Clarity: <strong className="text-emerald-400">100%</strong></span>
               </div>
             </div>
           </div>
 
-          {/* Floating HUD Strip (All About RepoMap - Zero Cards - Monochrome Minimal) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 pt-6 sm:pt-8 border-t border-white/15">
+          {/* Floating HUD Strip (Open Typographic Columns - Zero Cards) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 pt-4">
             <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl xl:text-3xl 2xl:text-4xl font-black text-white tracking-tight">100% In-Browser</div>
-              <div className="text-[11px] sm:text-xs lg:text-sm text-gray-400 mt-1">Zero Backend Indexing or Cloning Required</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">100% In-Browser</div>
+              <div className="text-xs text-gray-400 mt-1 font-sans">Zero Backend Indexing or Cloning Required</div>
             </div>
             <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl xl:text-3xl 2xl:text-4xl font-black text-white tracking-tight">0s Setup Time</div>
-              <div className="text-[11px] sm:text-xs lg:text-sm text-gray-400 mt-1">Paste Any Standard GitHub Repository Link</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">0s Setup Time</div>
+              <div className="text-xs text-gray-400 mt-1 font-sans">Paste Any Standard GitHub Repository Link</div>
             </div>
             <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl xl:text-3xl 2xl:text-4xl font-black text-white tracking-tight">AST + AI Linked</div>
-              <div className="text-[11px] sm:text-xs lg:text-sm text-gray-400 mt-1">Multi-Agent Orchestrator & Q&A Assistant</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">AST + AI Linked</div>
+              <div className="text-xs text-gray-400 mt-1 font-sans">Multi-Agent Orchestrator & Q&A Assistant</div>
             </div>
             <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl xl:text-3xl 2xl:text-4xl font-black text-white tracking-tight">Draw.io XML</div>
-              <div className="text-[11px] sm:text-xs lg:text-sm text-gray-400 mt-1">Export Presentation Architecture Diagrams</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">Draw.io XML</div>
+              <div className="text-xs text-gray-400 mt-1 font-sans">Export Presentation Architecture Diagrams</div>
             </div>
           </div>
         </ScrollReveal>
@@ -596,97 +636,95 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
 
       <SectionConnector number="02" label="Target Audience & Personas" />
 
-      {/* Section 2: Target Audience -> Orbital Pill Selector & Open Spatial HUD (ZERO CARDS) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-16 sm:pb-20">
-        <ScrollReveal direction="up" className="max-w-[1600px] 2xl:max-w-[2000px] mx-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 sm:mb-12 gap-4 sm:gap-6">
+      {/* Section 2: Target Audience & Personas (Cardless Split Display) */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
+        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
+          <div className=" md:flex-row items-start md:items-end justify-between sm:mb-8 gap-2 sm:gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2.5 sm:mb-3">
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
+                <Users className="w-3.5 h-3.5 text-white" />
                 <span>Target Audience & Personas</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
                 Built For Whom? Tailored Superpowers for Every Role
               </h2>
             </div>
 
-            {/* Horizontal Pill Bar Navigation (No Card Buttons) */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-black/80 p-1 sm:p-1.5 rounded-full border border-white/15 backdrop-blur-xl">
+            {/* Horizontal Pill Bar Navigation */}
+            <div className="flex items-center gap-3 sm:gap-2 bg-black/80 p-1.5 rounded-2xl boarder-white/10  backdrop-blur-xl mt-5 ">
               {personasData.map((persona, index) => (
                 <button
                   key={persona.role}
                   onClick={() => setActivePersonaTab(index)}
-                  className={`px-3.5 sm:px-4 lg:px-5 py-1.5 sm:py-2 lg:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activePersonaTab === index
-                      ? 'bg-white text-black shadow-xl scale-[1.03]'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  className={`px-3.5 sm:px-4 lg:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activePersonaTab === index
+                    ? 'bg-white text-black shadow-xl scale-[1.02]'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                 >
-                  <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${activePersonaTab === index ? 'bg-black' : 'bg-white/40 animate-pulse'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${activePersonaTab === index ? 'bg-black' : 'bg-white/40 animate-pulse'}`} />
                   {persona.role.split(' ')[0]}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Open Split HUD Display (No Enclosing Border Boxes) */}
-          <div key={activePersonaTab} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center animate-in fade-in duration-300 pt-4 sm:pt-6">
-            <div className="lg:col-span-6 space-y-4 sm:space-y-6">
+          {/* Cardless Open Split HUD Display */}
+          <div key={activePersonaTab} className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start animate-in fade-in duration-300 pt-1 ">
+            <div className="lg:col-span-6 space-y-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-white shrink-0">
                   {personasData[activePersonaTab].icon}
                 </div>
                 <div>
-                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider px-2.5 sm:px-3 py-1 rounded-full bg-white/5 border border-white/15 text-white font-mono">
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/15 text-white font-mono">
                     {personasData[activePersonaTab].badge}
                   </span>
                   <div className="text-base sm:text-lg lg:text-xl font-bold text-white mt-1">{personasData[activePersonaTab].role}</div>
                 </div>
               </div>
 
-              <h3 className="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl font-extrabold text-white leading-tight">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
                 {personasData[activePersonaTab].headline}
               </h3>
-              <p className="text-gray-300 text-xs sm:text-sm lg:text-base xl:text-lg leading-relaxed">
+              <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
                 {personasData[activePersonaTab].description}
               </p>
 
-              <div className="flex items-center gap-6 pt-4 text-sm text-gray-400 border-t border-white/10">
+              <div className="flex flex-wrap items-center gap-6 pt-4 text-xs sm:text-sm font-mono text-gray-300 border-t border-white/10">
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-white/80" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   Instant AST Mapping
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-white/60" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                   Zero Configuration
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-white/40" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                   Draw.io XML Ready
                 </span>
               </div>
             </div>
 
-            <div className="lg:col-span-6">
-              <div className="bg-black/90 border border-white/20 rounded-3xl p-8 relative overflow-hidden font-mono shadow-[0_0_80px_rgba(255,255,255,0.05)]">
-                <div className="absolute top-0 right-0 w-72 h-72 bg-white/[0.04] rounded-full blur-3xl pointer-events-none" />
-                <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <span className="w-3 h-3 rounded-full bg-green-500/80" />
-                    <span className="ml-2 text-white font-semibold">{personasData[activePersonaTab].previewTitle}</span>
-                  </div>
-                  <span className="text-xs font-bold text-white font-mono bg-white/10 px-2.5 py-1 rounded border border-white/20">
-                    {personasData[activePersonaTab].previewTag}
-                  </span>
+            {/* Right Column: Borderless Code Trace over #000000 */}
+            <div className="lg:col-span-6 font-mono border-l lg:border-l-2 border-white/15 pl-0 lg:pl-10 space-y-5 pt-4 lg:pt-0">
+              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-white font-bold font-sans">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{personasData[activePersonaTab].previewTitle}</span>
                 </div>
-                <div className="bg-white/[0.03] p-6 rounded-2xl border border-white/15 text-base text-gray-200 leading-relaxed break-all">
-                  {personasData[activePersonaTab].previewCode}
-                </div>
-                <div className="mt-6 flex items-center justify-between text-xs text-gray-400 font-sans">
-                  <span>Status: Active Engine Trace</span>
-                  <span>Spatial Coordinates: Pinned</span>
-                </div>
+                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 font-mono">
+                  {personasData[activePersonaTab].previewTag}
+                </span>
+              </div>
+
+              <div className="text-xs sm:text-sm text-gray-200 leading-relaxed break-all font-mono py-2">
+                {personasData[activePersonaTab].previewCode}
+              </div>
+
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-gray-500 font-mono">
+                <span>Status: <strong className="text-white">Active Engine Trace</strong></span>
+                <span>Spatial Coordinates: <strong className="text-white">Pinned</strong></span>
               </div>
             </div>
           </div>
@@ -695,41 +733,43 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
 
       <SectionConnector number="03" label="Core Workflow Mechanics" />
 
-      {/* Section 3: Developer Workflow -> The 3 Pillars of Code Cartography Grid (ZERO CARDS) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-16 sm:pb-20">
-        <ScrollReveal direction="up" className="max-w-[1600px] 2xl:max-w-[2000px] mx-auto">
-          <div className="mb-10 sm:mb-16 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2.5 sm:mb-3">
-              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+      {/* Section 3: Developer Workflow Mechanics (Cardless Staggered Editorial Grid) */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
+        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
+          <div className="mb-8 sm:mb-10 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
+              <BookOpen className="w-3.5 h-3.5 text-white" />
               <span>Developer Workflow & Core Mechanics</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
               How It Makes Understanding Source Code Easy
             </h2>
-            <p className="text-gray-400 text-xs sm:text-sm lg:text-base xl:text-lg mt-2 sm:mt-3 max-w-2xl">
+            <p className="text-gray-400 text-xs sm:text-sm lg:text-base mt-2 max-w-2xl font-normal">
               Three core pillars of cognitive psychology, progressive disclosure, and multi-agent AI intelligence.
             </p>
           </div>
 
-          {/* Open 3-Pillar Architectural Display with Staggered Scroll Animations */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 xl:gap-16 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-14 items-start border-t border-white/15 pt-6 sm:pt-8">
             {workflowData.map((pillar, idx) => (
-              <ScrollReveal key={pillar.title} direction="up" delay={100 + idx * 150} className="border-l-2 border-white/15 pl-6 sm:pl-8 space-y-4 sm:space-y-5">
+              <ScrollReveal key={pillar.title} direction="up" delay={100 + idx * 150} className="space-y-5 border-l-2 border-white/20 pl-6 sm:pl-8">
                 <div className="flex items-center justify-between">
-                  <div className="text-3xl sm:text-4xl lg:text-4xl xl:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-600 tracking-tighter">
+                  <div className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-600 tracking-tighter font-mono">
                     0{idx + 1}
                   </div>
-                  <span className="text-[11px] sm:text-xs font-mono uppercase px-2 sm:px-2.5 py-1 rounded bg-white/5 border border-white/15 text-gray-300">
+                  <span className="text-[10px] sm:text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-white/5 border border-white/15 text-gray-300 font-bold">
                     {pillar.badge}
                   </span>
                 </div>
-                <h3 className="text-lg sm:text-xl lg:text-xl xl:text-2xl font-bold text-white">{pillar.title}</h3>
-                <p className="text-gray-400 text-xs sm:text-sm lg:text-sm xl:text-[15px] leading-relaxed">
+                <h3 className="text-lg sm:text-xl font-bold text-white">{pillar.title}</h3>
+                <p className="text-gray-400 text-xs sm:text-sm leading-relaxed font-sans">
                   {pillar.description}
                 </p>
-                <div className="pt-3 sm:pt-4 border-t border-white/10 flex items-center justify-between text-[11px] sm:text-xs font-mono text-gray-400">
+                <div className="pl-3 border-l-2 border-white/30 text-xs text-gray-300 font-mono italic py-1">
+                  &ldquo;{pillar.visualText}&rdquo;
+                </div>
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
                   <span>{pillar.visualBadge}</span>
-                  <span className="text-white font-bold bg-white/10 px-2 sm:px-2.5 py-1 rounded border border-white/20">{pillar.visualStat}</span>
+                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded border border-white/20">{pillar.visualStat}</span>
                 </div>
               </ScrollReveal>
             ))}
@@ -739,32 +779,32 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
 
       <SectionConnector number="04" label="Interactive Step-By-Step Guide" />
 
-      {/* Section 4: Step-by-Step Guide -> Horizontal Glowing Stepper & Live Command Console (ZERO CARDS) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-20 sm:pb-32">
-        <ScrollReveal direction="up" className="max-w-[1600px] 2xl:max-w-[2000px] mx-auto">
-          <div className="mb-10 sm:mb-14 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-300 mb-2.5 sm:mb-3">
-              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+      {/* Section 4: Step-by-Step Guide (Cardless Split Display & Stepper) */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-10 sm:pb-16">
+        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
+          <div className="mb-6 sm:mb-8 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
+              <Download className="w-3.5 h-3.5 text-white" />
               <span>Step-by-Step Guide</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
               How To Use RepoMap: From GitHub Link to AST Mastery
             </h2>
           </div>
 
-          {/* Horizontal Timeline Stepper Bar across Full Width */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12 border-b border-white/15 pb-4 sm:pb-6">
+          {/* Horizontal Timeline Stepper Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 border-b border-white/15 pb-4 sm:pb-6">
             {stepData.map((item, idx) => (
               <button
                 key={item.step}
                 onClick={() => setActiveStepTab(idx)}
-                className={`text-left pb-2.5 sm:pb-3 transition-all duration-200 flex items-center justify-between group ${activeStepTab === idx
-                    ? 'border-b-2 border-white text-white opacity-100 scale-[1.01]'
-                    : 'text-gray-500 hover:text-gray-300 opacity-70 hover:opacity-100'
+                className={`text-left pb-3 transition-all duration-200 flex items-center justify-between group ${activeStepTab === idx
+                  ? 'border-b-2 border-white text-white opacity-100'
+                  : 'text-gray-500 hover:text-gray-300 opacity-70 hover:opacity-100'
                   }`}
               >
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${activeStepTab === idx ? 'bg-white text-black' : 'bg-white/10 text-white'
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs shrink-0 ${activeStepTab === idx ? 'bg-white text-black shadow-lg' : 'bg-white/10 text-white'
                     }`}>
                     0{item.step}
                   </span>
@@ -774,68 +814,66 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             ))}
           </div>
 
-          {/* Borderless Interactive Command Console HUD */}
-          <div key={activeStepTab} className="bg-black/90 border border-white/20 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 xl:p-14 relative overflow-hidden shadow-2xl animate-in fade-in duration-300 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
-
-            <div className="lg:col-span-6 space-y-4 sm:space-y-6">
-              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-mono text-white">
-                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-white animate-pulse" />
-                <span>STEP 0{stepData[activeStepTab].step} // {stepData[activeStepTab].mockupHeader}</span>
+          {/* Cardless Interactive Command Console Split */}
+          <div key={activeStepTab} className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start animate-in fade-in duration-300 pt-2">
+            <div className="lg:col-span-6 space-y-6">
+              <div className="flex items-center gap-2.5 text-xs font-mono text-gray-400">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span className="text-white font-bold">STEP 0{stepData[activeStepTab].step}</span>
+                <span>//</span>
+                <span>{stepData[activeStepTab].mockupHeader}</span>
               </div>
-              <h3 className="text-2xl sm:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white leading-tight">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
                 {stepData[activeStepTab].title}
               </h3>
-              <p className="text-gray-300 text-xs sm:text-sm lg:text-base xl:text-lg leading-relaxed">
+              <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
                 {stepData[activeStepTab].description}
               </p>
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2 sm:pt-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-4">
                 <button
                   onClick={() => setActiveStepTab((prev) => (prev + 1) % stepData.length)}
-                  className="bg-white hover:bg-gray-200 text-black font-semibold py-2 sm:py-2.5 px-5 sm:px-6 rounded-xl transition-colors text-xs sm:text-sm flex items-center gap-2"
+                  className="bg-white hover:bg-gray-200 text-black font-semibold py-2 sm:py-2.5 px-5 sm:px-6 rounded-xl transition-colors text-xs sm:text-sm flex items-center gap-2 shadow-md"
                 >
                   Next Step <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
-                <span className="text-[11px] sm:text-xs text-gray-500 font-mono">Use buttons above or click Next to cycle steps</span>
+                <span className="text-[11px] text-gray-500 font-mono">Click Next or use tabs above to cycle steps</span>
               </div>
             </div>
 
-            <div className="lg:col-span-6">
-              <div className="bg-black border border-white/15 rounded-2xl p-4 sm:p-6 lg:p-8 font-mono shadow-inner space-y-3 sm:space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2.5 sm:pb-3 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500/80" />
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-500/80" />
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500/80" />
-                    <span className="ml-1 sm:ml-2 text-gray-300">Live Simulation Console</span>
-                  </div>
-                  <span className="text-white font-bold bg-white/10 px-2 py-0.5 rounded border border-white/20 text-[10px] sm:text-xs">{stepData[activeStepTab].mockupStatus}</span>
+            {/* Right Column: Borderless Live Simulation Console over #000000 */}
+            <div className="lg:col-span-6 font-mono border-l lg:border-l-2 border-white/15 pl-0 lg:pl-10 space-y-5 pt-4 lg:pt-0">
+              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-white font-bold font-sans">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Live Simulation Console</span>
                 </div>
-                <div className="bg-white/[0.04] p-4 sm:p-6 rounded-xl border border-white/10 text-white text-xs sm:text-sm md:text-base lg:text-base flex items-center justify-between gap-2">
-                  <span className="break-all sm:break-normal">{stepData[activeStepTab].mockupCommand}</span>
-                  <span className="text-[10px] sm:text-xs bg-white/10 text-white px-2 sm:px-2.5 py-1 rounded font-sans border border-white/20 shrink-0">Active Action</span>
-                </div>
-                <div className="text-[11px] sm:text-xs text-gray-500 font-sans flex justify-between pt-1 sm:pt-2">
-                  <span>Engine status: Ready</span>
-                  <span>Spatial layout: Deterministic</span>
-                </div>
+                <span className="text-white font-bold bg-white/10 px-2.5 py-0.5 rounded border border-white/20 text-[11px]">{stepData[activeStepTab].mockupStatus}</span>
+              </div>
+
+              <div className="text-white text-xs sm:text-sm md:text-base flex items-center justify-between gap-4 py-3">
+                <span className="break-all sm:break-normal font-mono text-emerald-300">{stepData[activeStepTab].mockupCommand}</span>
+                <span className="text-[10px] sm:text-xs bg-white/10 text-white px-2.5 py-1 rounded font-mono border border-white/20 shrink-0">Active Action</span>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 text-[11px] text-gray-500 font-mono flex justify-between">
+                <span>Engine status: <strong className="text-white">Ready</strong></span>
+                <span>Spatial layout: <strong className="text-white">Deterministic</strong></span>
               </div>
             </div>
           </div>
         </ScrollReveal>
       </div>
 
-
       {/* Footer */}
-      <footer className="w-full border-t border-white/10 bg-black py-6 sm:py-8 px-4 sm:px-8 flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-gray-500 z-10 gap-4 md:gap-0 mt-auto">
-        <div className="flex items-center gap-2 text-white/70">
-          <Image src="/icon.svg" alt="RepoMap Logo" width={16} height={16} className="opacity-70" />
+      <footer className="w-full border-t border-white/10 bg-black py-8 px-4 sm:px-8 flex flex-col md:flex-row items-center justify-between text-xs sm:text-sm text-gray-500 z-10 gap-4 md:gap-0 mt-auto">
+        <div className="flex items-center gap-2 text-white/80 font-mono">
+          <Image src="/icon.svg" alt="RepoMap Logo" width={16} height={16} className="opacity-80" />
           <span>RepoMap © 2026</span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 font-sans">
           <a href="#" className="hover:text-white transition-colors">Terms</a>
           <a href="#" className="hover:text-white transition-colors">Privacy</a>
-          <a href="https://github.com/armannhansda/RepoMap" className="flex items-center gap-1 hover:text-white transition-colors">
+          <a href="https://github.com/armannhansda/RepoMap" className="flex items-center gap-1.5 hover:text-white transition-colors font-mono">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.02c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A4.8 4.8 0 0 0 9 18v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg> GitHub
           </a>
         </div>

@@ -12,7 +12,7 @@ import { getFileContent, explainNode } from "@/services/api";
 import ReactMarkdown from 'react-markdown';
 import { Loader2, Sparkles } from "lucide-react";
 
-const nodeTypes = {
+const initialNodeTypes = {
   custom: CustomNode,
 };
 
@@ -37,6 +37,9 @@ function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
 }
 
 function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
+  const nodeTypes = useMemo(() => initialNodeTypes, []);
+  const proOptions = useMemo(() => ({ hideAttribution: true }), []);
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -410,7 +413,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
             setHoveredNode(null);
           }, 200);
         }}
-        proOptions={{ hideAttribution: true }}
+        proOptions={proOptions}
       >
         <FitViewOnUpdate nodes={nodes} />
         

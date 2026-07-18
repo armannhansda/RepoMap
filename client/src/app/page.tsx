@@ -98,20 +98,18 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
           {/* Currently Processing Step (fades upward smoothly on completion) */}
           <div
             key={`processing-${stepIdx}`}
-            className={`flex items-center justify-center gap-3 transition-all duration-500 transform ${
-              isTransitioning
+            className={`flex items-center justify-center gap-3 transition-all duration-500 transform ${isTransitioning
                 ? "opacity-0 -translate-y-6 scale-95 blur-[1px]"
                 : "opacity-100 translate-y-0 scale-100 animate-in fade-in slide-in-from-bottom-3 duration-500"
-            }`}
+              }`}
           >
             {isTransitioning || status === "completed" ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-in zoom-in duration-200" />
             ) : (
               <Loader2 className="w-4 h-4 text-emerald-400 animate-spin flex-shrink-0" />
             )}
-            <span className={`font-mono text-xs sm:text-sm font-semibold tracking-wide truncate max-w-lg transition-colors duration-300 ${
-              isTransitioning || status === "completed" ? "text-emerald-400/90 line-through" : "text-white"
-            }`}>
+            <span className={`font-mono text-xs sm:text-sm font-semibold tracking-wide truncate max-w-lg transition-colors duration-300 ${isTransitioning || status === "completed" ? "text-emerald-400/90 line-through" : "text-white"
+              }`}>
               {stepDescription}
             </span>
             {!isTransitioning && status !== "completed" && (
@@ -123,11 +121,10 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
           {nextStepDescription && (
             <div
               key={`upcoming-${stepIdx + 1}`}
-              className={`flex items-center justify-center gap-2.5 font-mono text-xs sm:text-[13px] tracking-wide transition-all duration-500 transform ${
-                isTransitioning
+              className={`flex items-center justify-center gap-2.5 font-mono text-xs sm:text-[13px] tracking-wide transition-all duration-500 transform ${isTransitioning
                   ? "opacity-100 -translate-y-6 text-white font-medium scale-100"
                   : "opacity-40 translate-y-0 text-gray-400 scale-95 animate-in fade-in slide-in-from-bottom-3 duration-500"
-              }`}
+                }`}
             >
               <div className="w-3.5 h-3.5 rounded-full border border-white/25 flex-shrink-0" />
               <span className="truncate max-w-md">{nextStepDescription}</span>
@@ -163,13 +160,13 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
   );
 }
 
-export default function Home(){
+export default function Home() {
   const [repoUrl, setRepoUrl] = useState("");
   const [graph, setGraph] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [repoId, setRepoId] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>();
-  
+
   const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
   const [repoExplanation, setRepoExplanation] = useState<string | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
@@ -311,7 +308,7 @@ export default function Home(){
         setIsExplainModalOpen(true);
       } else if (response.nodes && response.edges) {
         generateDrawioXml(response.nodes, response.edges, `${repoUrl.split("/").pop()?.replace(".git", "")}-architecture.drawio`, response.groups || []);
-        
+
         if (response.explanation) {
           setRepoExplanation(response.explanation);
           setExplainError(null);
@@ -334,7 +331,7 @@ export default function Home(){
     if (!repoUrl) return;
     try {
       setLoading(true);
-      
+
       // 1. Check IndexedDB
       const existingRepo = await getRepository(repoUrl);
       if (existingRepo) {
@@ -351,7 +348,7 @@ export default function Home(){
 
       // 2. Call backend if not cached
       const result = await analyzeRepo(repoUrl);
-      
+
       // 3. Save new data to IndexedDB
       const newRepo = {
         id: repoUrl,
@@ -362,7 +359,7 @@ export default function Home(){
         analyzedAt: Date.now(),
         fileTree: [],
       };
-      
+
       await saveRepository(newRepo);
       await saveGraph({
         repoId: repoUrl,
@@ -381,8 +378,8 @@ export default function Home(){
     }
   }, [repoUrl]);
 
-  const selectedNode = selectedNodeId === "__MEMORY__" 
-    ? { id: "__MEMORY__", label: "Repository Memory & Architecture", type: "memory" } 
+  const selectedNode = selectedNodeId === "__MEMORY__"
+    ? { id: "__MEMORY__", label: "Repository Memory & Architecture", type: "memory" }
     : graph?.nodes?.find((n: any) => n.id === selectedNodeId);
 
   const [leftWidth, setLeftWidth] = useState(240);
@@ -414,16 +411,16 @@ export default function Home(){
     const startX = e.clientX;
     const startWidth = leftWidth;
     const maxAllowed = typeof window !== 'undefined' ? Math.min(500, Math.floor(window.innerWidth * 0.4)) : 500;
-    
+
     const onMouseMove = (e: MouseEvent) => {
       setLeftWidth(Math.max(160, Math.min(maxAllowed, startWidth + (e.clientX - startX))));
     };
-    
+
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-    
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   };
@@ -433,16 +430,16 @@ export default function Home(){
     const startX = e.clientX;
     const startWidth = rightWidth;
     const maxAllowed = typeof window !== 'undefined' ? Math.min(650, Math.floor(window.innerWidth * 0.45)) : 650;
-    
+
     const onMouseMove = (e: MouseEvent) => {
       setRightWidth(Math.max(220, Math.min(maxAllowed, startWidth - (e.clientX - startX))));
     };
-    
+
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
     };
-    
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   };
@@ -450,10 +447,10 @@ export default function Home(){
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-transparent text-white font-sans">
       {graph && (
-        <Header 
-          repoUrl={repoUrl} 
-          setRepoUrl={setRepoUrl} 
-          onAnalyze={handleAnalyze} 
+        <Header
+          repoUrl={repoUrl}
+          setRepoUrl={setRepoUrl}
+          onAnalyze={handleAnalyze}
           onNewAnalysis={() => {
             setGraph(null);
             setRepoUrl("");
@@ -481,31 +478,31 @@ export default function Home(){
             isExplainModalOpen
               ? 'explain'
               : selectedNodeId === '__MEMORY__'
-              ? 'memory'
-              : aiModalOpen
-              ? aiModalTab
-              : orchestratorModalOpen
-              ? 'engine'
-              : healthModalOpen
-              ? healthModalTab === 'health'
-                ? 'health'
-                : 'hotspots'
-              : null
+                ? 'memory'
+                : aiModalOpen
+                  ? aiModalTab
+                  : orchestratorModalOpen
+                    ? 'engine'
+                    : healthModalOpen
+                      ? healthModalTab === 'health'
+                        ? 'health'
+                        : 'hotspots'
+                      : null
           }
         />
       )}
-      
+
       <div className="flex flex-1 overflow-hidden relative">
         {graph && !isLeftSidebarCollapsed && (
           <div style={{ width: leftWidth }} className="flex-shrink-0 relative max-w-[80vw] sm:max-w-[320px] lg:max-w-[420px] transition-all duration-300">
-            <LeftSidebar 
-              nodes={graph.nodes} 
+            <LeftSidebar
+              nodes={graph.nodes}
               selectedNodeId={selectedNodeId}
               onNodeSelect={setSelectedNodeId}
               repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
               onToggleCollapse={() => setIsLeftSidebarCollapsed(true)}
             />
-            <div 
+            <div
               className="absolute top-0 -right-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
               onMouseDown={startResizeLeft}
             />
@@ -525,14 +522,14 @@ export default function Home(){
             <span className="text-xs font-semibold pr-1">Files</span>
           </button>
         )}
-        
+
         <main className="flex-1 relative bg-transparent overflow-hidden">
 
 
           {loading && <AnalysisProgressOverlay repoUrl={repoUrl} />}
-          
+
           {!graph ? (
-            <LandingPage 
+            <LandingPage
               repoUrl={repoUrl}
               setRepoUrl={setRepoUrl}
               onAnalyze={handleAnalyze}
@@ -540,15 +537,15 @@ export default function Home(){
             />
           ) : (
             <>
-              <RepoGraph 
-                graph={graph} 
+              <RepoGraph
+                graph={graph}
                 repoId={repoId}
                 selectedNodeId={selectedNodeId}
                 onNodeSelect={handleNodeSelect}
               />
 
               {/* Feature Panels docked inside graph canvas under navbar */}
-              <RepoExplanationModal 
+              <RepoExplanationModal
                 isOpen={isExplainModalOpen}
                 onClose={() => setIsExplainModalOpen(false)}
                 repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Repository"}
@@ -557,7 +554,7 @@ export default function Home(){
                 error={explainError}
               />
 
-              <AiAgentsModal 
+              <AiAgentsModal
                 isOpen={aiModalOpen}
                 onClose={() => setAiModalOpen(false)}
                 repoId={repoId || repoUrl}
@@ -566,7 +563,7 @@ export default function Home(){
                 onSelectNode={handleSelectNodeId}
               />
 
-              <HealthDashboardModal 
+              <HealthDashboardModal
                 isOpen={healthModalOpen}
                 onClose={() => setHealthModalOpen(false)}
                 repoId={repoId || repoUrl}
@@ -575,7 +572,7 @@ export default function Home(){
                 onSelectNode={handleSelectNodeId}
               />
 
-              <MultiAgentOrchestratorModal 
+              <MultiAgentOrchestratorModal
                 isOpen={orchestratorModalOpen}
                 onClose={() => setOrchestratorModalOpen(false)}
                 repoId={repoId || repoUrl}
@@ -588,14 +585,14 @@ export default function Home(){
 
         {graph && selectedNode && (
           <div style={{ width: rightWidth }} className="flex-shrink-0 relative max-w-[85vw] sm:max-w-[450px] lg:max-w-[600px]">
-            <div 
+            <div
               className="absolute top-0 -left-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
               onMouseDown={startResizeRight}
             />
-            <FileSidebar 
-              node={selectedNode} 
-              repoId={repoId} 
-              onClose={() => setSelectedNodeId(undefined)} 
+            <FileSidebar
+              node={selectedNode}
+              repoId={repoId}
+              onClose={() => setSelectedNodeId(undefined)}
             />
           </div>
         )}
