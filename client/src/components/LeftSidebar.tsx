@@ -1,11 +1,12 @@
 import React, { useState, useMemo, memo } from "react";
-import { Folder, ChevronRight, ChevronDown, Database, Route, Search, Settings, HelpCircle, File as FileIcon, Code } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Database, Route, Search, Settings, HelpCircle, File as FileIcon, Code, PanelLeftClose } from "lucide-react";
 
 interface LeftSidebarProps {
   nodes: any[];
   onNodeSelect: (nodeId?: string) => void;
   selectedNodeId?: string;
   repoName: string;
+  onToggleCollapse?: () => void;
 }
 
 type FileTree = {
@@ -16,7 +17,7 @@ type FileTree = {
   };
 };
 
-function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }: LeftSidebarProps) {
+function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName, onToggleCollapse }: LeftSidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["packages", "src"]));
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -112,14 +113,25 @@ function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }:
   return (
     <div className="w-full border-r border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-xs sm:text-sm relative z-40">
       {/* Header */}
-      <div className="p-3 sm:p-4 border-b border-white/10 flex items-center gap-2 sm:gap-3">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-          <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+      <div className="p-3 sm:p-4 border-b border-white/10 flex items-center justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+            <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          </div>
+          <div className="overflow-hidden">
+            <h2 className="font-semibold text-xs sm:text-sm text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
+            <p className="text-[10px] sm:text-xs text-text-muted">main branch</p>
+          </div>
         </div>
-        <div className="overflow-hidden">
-          <h2 className="font-semibold text-xs sm:text-sm text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
-          <p className="text-[10px] sm:text-xs text-text-muted">main branch</p>
-        </div>
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            title="Minimize explorer to top left corner"
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 flex items-center justify-center"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Accordions */}
@@ -135,7 +147,7 @@ function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }:
           </div>
 
           {/* Search Input */}
-          <div className="px-3 pt-2.5 pb-1.5">
+          {/* <div className="px-3 pt-2.5 pb-1.5">
             <div className="relative flex items-center">
               <Search className="w-3.5 h-3.5 absolute left-2.5 text-white/40 pointer-events-none" />
               <input
@@ -146,7 +158,7 @@ function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }:
                 className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-8 pr-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all"
               />
             </div>
-          </div>
+          </div> */}
 
           <div className="py-2">
             {Object.keys(fileTree).length > 0 ? (

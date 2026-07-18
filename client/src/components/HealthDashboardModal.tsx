@@ -110,24 +110,24 @@ export default function HealthDashboardModal({
   const getMetricAttentionStyle = (score?: number, grade?: string) => {
     if (typeof score === 'number' && score < 60 || grade === 'D' || grade === 'F') {
       return {
-        card: 'bg-rose-500/[0.07] border border-rose-500/35 text-rose-100 hover:border-rose-500/50',
-        badge: 'bg-rose-500/20 text-rose-300 border border-rose-500/40',
+        card: 'bg-rose-500/[0.03] border-l-2 border-rose-500/60 text-white hover:bg-rose-500/[0.06]',
+        badge: 'bg-rose-500/15 text-rose-300 border border-rose-500/30',
         text: 'text-rose-200',
         needsAttention: true,
-        label: 'Critical Attention'
+        label: 'Critical'
       };
     }
     if (typeof score === 'number' && score < 75 || grade === 'C') {
       return {
-        card: 'bg-amber-500/[0.06] border border-amber-500/35 text-amber-100 hover:border-amber-500/50',
-        badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40',
+        card: 'bg-amber-500/[0.03] border-l-2 border-amber-500/50 text-white hover:bg-amber-500/[0.05]',
+        badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/30',
         text: 'text-amber-200',
         needsAttention: true,
-        label: 'Needs Attention'
+        label: 'Attention'
       };
     }
     return {
-      card: 'bg-white/[0.02] border border-white/5 text-white hover:border-white/15',
+      card: 'hover:bg-white/[0.02] text-white',
       badge: getGradeBadge(grade),
       text: 'text-text-muted',
       needsAttention: false,
@@ -138,18 +138,18 @@ export default function HealthDashboardModal({
   const getDebtBadge = (risk: string) => {
     switch (risk) {
       case 'Critical':
-        return 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+        return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
       case 'High':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+        return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
       default:
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+        return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
     }
   };
 
   const getDebtCardStyle = (risk: string) => {
-    if (risk === 'Critical') return 'bg-rose-500/[0.07] border-rose-500/35 hover:border-rose-500/50';
-    if (risk === 'High') return 'bg-amber-500/[0.06] border-amber-500/35 hover:border-amber-500/50';
-    return 'bg-white/[0.02] border-white/5 hover:border-white/15';
+    if (risk === 'Critical') return 'bg-rose-500/[0.03] hover:bg-rose-500/[0.06] border-l-2 border-rose-500/50';
+    if (risk === 'High') return 'bg-amber-500/[0.02] hover:bg-amber-500/[0.05] border-l-2 border-amber-500/40';
+    return 'hover:bg-white/[0.02]';
   };
 
   return (
@@ -160,25 +160,15 @@ export default function HealthDashboardModal({
           {activeTab === 'health' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               {healthLoading && !healthData ? (
-                <div className="space-y-4 animate-pulse">
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3 shadow-inner">
-                    <div className="h-4 bg-white/15 rounded-md w-1/3" />
-                    <div className="h-3 bg-white/10 rounded-md w-2/3" />
+                <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-14 h-14 rounded-full bg-emerald-500/10 blur-xl animate-pulse pointer-events-none" />
+                    <Activity className="w-7 h-7 text-emerald-400 animate-pulse relative z-10" />
+                    <div className="absolute w-12 h-12 border border-emerald-500/25 rounded-full animate-[spin_4s_linear_infinite]" />
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[1, 2, 3, 4].map((item) => (
-                      <div key={item} className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-2 shadow-sm">
-                        <div className="h-3 bg-white/10 rounded w-16" />
-                        <div className="h-6 bg-white/15 rounded w-12" />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                    <div className="h-4 bg-white/15 rounded w-36" />
-                    <div className="space-y-2">
-                      <div className="h-3 bg-white/10 rounded w-full" />
-                      <div className="h-3 bg-white/10 rounded w-4/5" />
-                    </div>
+                  <div className="font-mono text-xs text-emerald-300 flex items-center gap-2">
+                    <span>&gt; AI agent auditing repository health metrics & dependencies...</span>
+                    <span className="w-1.5 h-3 bg-emerald-400 animate-pulse inline-block" />
                   </div>
                 </div>
               ) : healthError ? (
@@ -215,13 +205,13 @@ export default function HealthDashboardModal({
                     </div>
                   </div>
 
-                  {/* 6 Metrics Grid (Minimal & Clean with Attention Differentiation) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* 6 Metrics List (Minimal & Flat - No Individual Cards) */}
+                  <div className="divide-y divide-white/10 bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden">
                     {/* Architecture */}
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.architecture?.score, healthData.metrics?.architecture?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <Layers className="w-3.5 h-3.5 opacity-80" />
@@ -233,7 +223,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.architecture?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.architecture?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.architecture?.summary}</p>
@@ -245,7 +235,7 @@ export default function HealthDashboardModal({
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.documentation?.score, healthData.metrics?.documentation?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <BookOpen className="w-3.5 h-3.5 opacity-80" />
@@ -257,7 +247,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.documentation?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.documentation?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.documentation?.summary}</p>
@@ -269,7 +259,7 @@ export default function HealthDashboardModal({
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.testing?.score, healthData.metrics?.testing?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <CheckSquare className="w-3.5 h-3.5 opacity-80" />
@@ -281,7 +271,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.testing?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.testing?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.testing?.summary}</p>
@@ -293,7 +283,7 @@ export default function HealthDashboardModal({
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.maintainability?.score, healthData.metrics?.maintainability?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <Cpu className="w-3.5 h-3.5 opacity-80" />
@@ -305,7 +295,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.maintainability?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.maintainability?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.maintainability?.summary}</p>
@@ -317,7 +307,7 @@ export default function HealthDashboardModal({
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.security?.score, healthData.metrics?.security?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <Lock className="w-3.5 h-3.5 opacity-80" />
@@ -329,7 +319,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.security?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.security?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.security?.summary}</p>
@@ -341,7 +331,7 @@ export default function HealthDashboardModal({
                     {(() => {
                       const style = getMetricAttentionStyle(healthData.metrics?.performance?.score, healthData.metrics?.performance?.grade);
                       return (
-                        <div className={`rounded-xl p-4 space-y-1.5 transition-colors ${style.card}`}>
+                        <div className={`p-3.5 sm:p-4 space-y-1 transition-colors ${style.needsAttention ? style.card : 'hover:bg-white/[0.02]'}`}>
                           <div className="flex items-center justify-between text-xs font-medium">
                             <div className="flex items-center gap-2">
                               <Activity className="w-3.5 h-3.5 opacity-80" />
@@ -353,7 +343,7 @@ export default function HealthDashboardModal({
                                   {style.label}
                                 </span>
                               )}
-                              <span className="opacity-80">{healthData.metrics?.performance?.score}/100</span>
+                              <span className="opacity-80 font-bold">{healthData.metrics?.performance?.score}/100</span>
                             </div>
                           </div>
                           <p className={`text-xs ${style.text}`}>{healthData.metrics?.performance?.summary}</p>
@@ -370,24 +360,15 @@ export default function HealthDashboardModal({
           {activeTab === 'review' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               {reviewLoading && !reviewData ? (
-                <div className="space-y-4 animate-pulse">
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                    <div className="h-4 bg-white/15 rounded-md w-2/5" />
-                    <div className="h-3 bg-white/10 rounded-md w-3/4" />
+                <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-14 h-14 rounded-full bg-blue-500/10 blur-xl animate-pulse pointer-events-none" />
+                    <ShieldCheck className="w-7 h-7 text-blue-400 animate-pulse relative z-10" />
+                    <div className="absolute w-12 h-12 border border-blue-500/25 rounded-full animate-[spin_4s_linear_infinite]" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2].map((item) => (
-                      <div key={item} className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3 shadow-inner">
-                        <div className="flex items-center justify-between">
-                          <div className="h-4 bg-white/15 rounded w-1/3" />
-                          <div className="h-5 bg-white/10 rounded-full w-16" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="h-2.5 bg-white/10 rounded w-full" />
-                          <div className="h-2.5 bg-white/10 rounded w-5/6" />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="font-mono text-xs text-blue-300 flex items-center gap-2">
+                    <span>&gt; AI code review agent inspecting complexity & architectural hotspots...</span>
+                    <span className="w-1.5 h-3 bg-blue-400 animate-pulse inline-block" />
                   </div>
                 </div>
               ) : reviewError ? (
@@ -423,9 +404,9 @@ export default function HealthDashboardModal({
                         <Award className="w-3.5 h-3.5 text-white/70" />
                         <span>Key Architectural Recommendations</span>
                       </h4>
-                      <div className="space-y-1.5">
+                      <div className="divide-y divide-white/5 bg-white/[0.01] border border-white/5 rounded-xl overflow-hidden">
                         {reviewData.solidRecommendations.map((rec: string, idx: number) => (
-                          <div key={idx} className="flex items-start gap-2.5 text-xs bg-white/[0.02] border border-white/5 rounded-lg p-2.5 text-text-muted">
+                          <div key={idx} className="flex items-start gap-2.5 text-xs p-3 text-text-muted hover:bg-white/[0.02] transition-colors">
                             <span className="w-4 h-4 rounded-full bg-white/10 text-white flex items-center justify-center text-[10px] font-mono flex-shrink-0 mt-0.5">
                               {idx + 1}
                             </span>
@@ -436,17 +417,17 @@ export default function HealthDashboardModal({
                     </div>
                   )}
 
-                  {/* Dead Code Table (Differentiated Attention) */}
+                  {/* Dead Code Table (Minimal Differentiated Attention) */}
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center justify-between text-xs font-semibold text-white">
                       <div className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                         <span>Unreferenced Symbols ({reviewData.deadCodeNodes?.length || 0})</span>
                       </div>
-                      <span className="text-amber-300/80 font-normal text-[11px]">Click symbol to jump in graph</span>
+                      <span className="text-text-muted font-normal text-[11px]">Click symbol to jump in graph</span>
                     </div>
                     {reviewData.deadCodeNodes && reviewData.deadCodeNodes.length > 0 ? (
-                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
+                      <div className="divide-y divide-white/10 bg-white/[0.02] border border-white/10 rounded-xl max-h-56 overflow-y-auto pr-1 no-scrollbar">
                         {reviewData.deadCodeNodes.map((dn: any) => (
                           <div
                             key={dn.id}
@@ -456,20 +437,20 @@ export default function HealthDashboardModal({
                                 onClose();
                               }
                             }}
-                            className="bg-amber-500/[0.06] hover:bg-amber-500/[0.1] border border-amber-500/30 rounded-lg p-2.5 flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                            className="p-3 hover:bg-white/[0.04] flex items-center justify-between gap-3 transition-colors cursor-pointer group"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <FileCode className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                               <div className="min-w-0">
-                                <div className="font-mono text-xs text-amber-200 font-medium truncate group-hover:underline">
+                                <div className="font-mono text-xs text-white font-medium truncate group-hover:text-amber-300 transition-colors">
                                   {dn.label}
                                 </div>
-                                <div className="text-[11px] text-amber-300/60 font-mono truncate">
+                                <div className="text-[11px] text-text-muted font-mono truncate">
                                   {dn.file}
                                 </div>
                               </div>
                             </div>
-                            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-mono font-bold shrink-0">
+                            <span className="text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-mono font-bold shrink-0">
                               {dn.type}
                             </span>
                           </div>
@@ -482,14 +463,14 @@ export default function HealthDashboardModal({
                     )}
                   </div>
 
-                  {/* Code Smells Table (Differentiated Critical Attention) */}
+                  {/* Code Smells Table (Minimal Differentiated Critical Attention) */}
                   {reviewData.codeSmells && reviewData.codeSmells.length > 0 && (
                     <div className="space-y-2 pt-1">
-                      <h4 className="text-xs font-semibold text-rose-300 flex items-center gap-1.5">
+                      <h4 className="text-xs font-semibold text-white flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                         <span>Coupling & Architectural Smells ({reviewData.codeSmells.length})</span>
                       </h4>
-                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
+                      <div className="divide-y divide-white/10 bg-white/[0.02] border border-white/10 rounded-xl max-h-56 overflow-y-auto pr-1 no-scrollbar">
                         {reviewData.codeSmells.map((cs: any) => (
                           <div
                             key={cs.id}
@@ -499,17 +480,17 @@ export default function HealthDashboardModal({
                                 onClose();
                               }
                             }}
-                            className="bg-rose-500/[0.06] hover:bg-rose-500/[0.1] border border-rose-500/30 rounded-lg p-2.5 space-y-1 transition-colors cursor-pointer group"
+                            className="p-3 hover:bg-white/[0.04] space-y-1 transition-colors cursor-pointer group"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-xs font-medium text-rose-200 group-hover:underline truncate">
-                                {cs.label} <span className="text-rose-300/60 text-[11px] font-normal">({cs.file})</span>
+                              <span className="font-mono text-xs font-medium text-white group-hover:text-rose-300 transition-colors truncate">
+                                {cs.label} <span className="text-text-muted text-[11px] font-normal">({cs.file})</span>
                               </span>
-                              <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded font-mono font-bold shrink-0">
+                              <span className="text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-mono font-bold shrink-0">
                                 {cs.issue}
                               </span>
                             </div>
-                            <p className="text-[11px] text-rose-200/80 leading-relaxed">{cs.recommendation}</p>
+                            <p className="text-[11px] text-gray-300 leading-relaxed">{cs.recommendation}</p>
                           </div>
                         ))}
                       </div>
@@ -524,40 +505,33 @@ export default function HealthDashboardModal({
           {activeTab === 'git' && (
             <div className="space-y-6 animate-in fade-in duration-150">
               {healthLoading && !healthData ? (
-                <div className="space-y-4 animate-pulse">
-                  <div className="p-5 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-inner">
-                    <div className="space-y-2 flex-1">
-                      <div className="h-4 bg-white/15 rounded w-1/3" />
-                      <div className="h-3 bg-white/10 rounded w-2/3" />
-                    </div>
-                    <div className="h-9 w-28 bg-white/10 rounded-full" />
+                <div className="py-12 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-14 h-14 rounded-full bg-amber-500/10 blur-xl animate-pulse pointer-events-none" />
+                    <Activity className="w-7 h-7 text-amber-400 animate-pulse relative z-10" />
+                    <div className="absolute w-12 h-12 border border-amber-500/25 rounded-full animate-[spin_4s_linear_infinite]" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2].map((item) => (
-                      <div key={item} className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-                        <div className="h-4 bg-white/15 rounded w-2/5" />
-                        <div className="h-2.5 bg-white/10 rounded w-full" />
-                        <div className="h-2.5 bg-white/10 rounded w-4/5" />
-                      </div>
-                    ))}
+                  <div className="font-mono text-xs text-amber-300 flex items-center gap-2">
+                    <span>&gt; AI agent analyzing commit churn & technical debt hotspots...</span>
+                    <span className="w-1.5 h-3 bg-amber-400 animate-pulse inline-block" />
                   </div>
                 </div>
               ) : healthData?.gitIntelligence ? (
                 <div className="space-y-6">
                   {/* Overview Card */}
-                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-inner">
+                  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-inner">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-amber-400" />
-                        <h3 className="text-sm font-semibold text-amber-300">
+                        <Activity className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-semibold text-white tracking-tight">
                           Git Intelligence & Technical Debt Map
                         </h3>
                       </div>
-                      <p className="text-xs text-gray-300">
+                      <p className="text-xs text-text-muted leading-relaxed">
                         Analyzed {healthData.gitIntelligence.totalCommitsAnalyzed} recent commits across repository history to identify files with high churn and structural complexity.
                       </p>
                     </div>
-                    <span className="text-xs font-mono bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-xl border border-amber-500/30 font-bold flex-shrink-0">
+                    <span className="text-xs font-mono bg-amber-500/15 text-amber-300 px-3 py-1.5 rounded-xl border border-amber-500/30 font-semibold flex-shrink-0">
                       {healthData.gitIntelligence.topHotspots?.length || 0} Hotspots Tracked
                     </span>
                   </div>
@@ -571,13 +545,13 @@ export default function HealthDashboardModal({
                       </h4>
                       <span className="text-text-muted text-xs">Files with high modification frequency should be prioritized for refactoring</span>
                     </div>
-                    <div className="space-y-2.5 pt-1">
+                    <div className="divide-y divide-white/10 bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden pt-0.5">
                       {(healthData.gitIntelligence.topHotspots || []).map((hs: any, idx: number) => {
                         const debtCard = getDebtCardStyle(hs.debtRisk);
                         return (
                           <div
                             key={idx}
-                            className={`border rounded-xl p-4 flex items-center justify-between gap-4 transition-colors ${debtCard}`}
+                            className={`p-3.5 sm:p-4 flex items-center justify-between gap-4 transition-colors ${debtCard}`}
                           >
                             <div className="flex items-center gap-3.5 min-w-0">
                               <span className="w-6 h-6 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center text-xs font-mono font-bold flex-shrink-0">

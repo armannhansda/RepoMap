@@ -187,9 +187,9 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
     {
       step: 1,
       title: "Paste Any GitHub URL",
-      description: "Enter any public GitHub repository link (e.g., https://github.com/facebook/react) into the search bar above and click Analyze. Or press Cmd/Ctrl + K anytime to focus the URL bar instantly.",
+      description: "Enter any public GitHub repository link (e.g., https://github.com/expressjs/express) into the search bar above and click Analyze. Or press Cmd/Ctrl + K anytime to focus the URL bar instantly.",
       mockupHeader: "Input Action",
-      mockupCommand: "https://github.com/facebook/react",
+      mockupCommand: "https://github.com/expressjs/express",
       mockupStatus: "Ready for AST Extraction"
     },
     {
@@ -320,11 +320,11 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-400 mb-12 sm:mb-14 lg:mb-16 z-20 px-4">
           <span className="font-mono text-gray-500 uppercase tracking-wider font-semibold mr-1">Quick Try:</span>
           <button
-            onClick={() => setRepoUrl("https://github.com/facebook/react")}
+            onClick={() => setRepoUrl("https://github.com/developit/mitt")}
             className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2 font-mono shadow-sm text-xs sm:text-sm"
           >
             <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-            facebook/react
+            developit/mitt
           </button>
           <button
             onClick={() => setRepoUrl("https://github.com/expressjs/express")}
@@ -334,11 +334,11 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             expressjs/express
           </button>
           <button
-            onClick={() => setRepoUrl("https://github.com/vercel/next.js")}
+            onClick={() => setRepoUrl("https://github.com/sindresorhus/ky")}
             className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white transition-all flex items-center gap-2.5 font-mono shadow-sm"
           >
             <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-            vercel/next.js
+            sindresorhus/ky
           </button>
         </div>
 

@@ -126,3 +126,8 @@ export async function runOrchestrationApi(payload: { repoId: string; prompt: str
   });
   return response.json();
 }
+
+export async function getRepoProgressApi(repoUrl: string) {
+  const response = await fetch(`${API_BASE_URL}/api/repo/progress?repoUrl=${encodeURIComponent(repoUrl)}`);
+  return response.json();
+}

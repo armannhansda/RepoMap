@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Bot, Wand2, MessageSquare, ListTodo, Loader2, Sparkles, X, CheckCircle2, ArrowRight, Layers, FileCode, AlertCircle, HelpCircle, CheckCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { planTask, queryArchitecture } from '@/services/api';
+import { getRepoAskQuicks, getRepoPlannerQuicks } from '@/utils/repoQuicks';
 import DraggableCard from './DraggableCard';
 
 interface AiAgentsModalProps {
@@ -41,6 +42,9 @@ export default function AiAgentsModal({
   const [planResult, setPlanResult] = useState<any>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Record<number, boolean>>({});
+
+  const sampleQuestions = useMemo(() => getRepoAskQuicks(graph, repoId), [graph, repoId]);
+  const samplePrompts = useMemo(() => getRepoPlannerQuicks(graph, repoId), [graph, repoId]);
 
   if (!isOpen) return null;
 
@@ -87,19 +91,6 @@ export default function AiAgentsModal({
     setCompletedSteps(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const sampleQuestions = [
-    "How does the repository analyzer and graph builder work?",
-    "Trace the execution lifecycle of POST /api/ai/impact-analysis",
-    "What coding conventions and folder organization rules are enforced?",
-    "How are class and interface inheritance relationships resolved?"
-  ];
-
-  const samplePrompts = [
-    "Add a Redis caching layer for getGraph and analyzeRepo results",
-    "Add JWT authentication middleware to secure all /api/ai/* endpoints",
-    "Implement multi-file refactoring suggestions right inside the sidebar"
-  ];
-
   return (
     <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[92vw] sm:w-[580px] md:w-[620px] lg:w-[640px] xl:w-[680px]">
       {/* Content Area */}
@@ -136,7 +127,7 @@ export default function AiAgentsModal({
                   <button
                     key={i}
                     onClick={() => handleAskQuestion(sq)}
-                    className="text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-text-muted hover:text-white px-2.5 py-1 rounded-md transition-all cursor-pointer truncate max-w-[240px]"
+                    className="text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-text-muted hover:text-white px-2.5 py-1 rounded-md transition-all cursor-pointer truncate max-w-[280px]"
                     title={sq}
                   >
                     {sq}
@@ -153,17 +144,17 @@ export default function AiAgentsModal({
               </div>
             )}
 
-            {/* Loading */}
+            {/* Loading - Clean & Minimal AI reasoning state without cards */}
             {qaLoading && (
-              <div className="space-y-3 animate-pulse">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2.5">
-                  <div className="h-4 bg-white/15 rounded w-1/3" />
-                  <div className="h-3 bg-white/10 rounded w-full" />
-                  <div className="h-3 bg-white/10 rounded w-4/5" />
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-14 h-14 rounded-full bg-emerald-500/15 blur-xl animate-pulse pointer-events-none" />
+                  <Bot className="w-7 h-7 text-emerald-400 animate-pulse relative z-10" />
+                  <div className="absolute w-12 h-12 border border-emerald-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                  <div className="h-3 bg-white/15 rounded w-1/4" />
-                  <div className="h-3 bg-white/10 rounded w-5/6" />
+                <div className="font-mono text-xs text-emerald-400/90 flex items-center gap-2">
+                  <span>&gt; AI agent scanning code paths & synthesizing answer...</span>
+                  <span className="w-1.5 h-3 bg-emerald-400 animate-pulse inline-block" />
                 </div>
               </div>
             )}
@@ -192,9 +183,9 @@ export default function AiAgentsModal({
                       <Layers className="w-3.5 h-3.5 text-white/70" />
                       <span>Execution Path ({qaResult.tracedFlow.length} steps)</span>
                     </h4>
-                    <div className="space-y-2 pt-0.5">
+                    <div className="divide-y divide-white/5 bg-black/20 rounded-xl border border-white/5 overflow-hidden">
                       {qaResult.tracedFlow.map((step: any, idx: number) => (
-                        <div key={idx} className="flex items-start gap-2.5 text-xs bg-black/30 border border-white/10 rounded-lg p-2.5">
+                        <div key={idx} className="flex items-start gap-3 p-3 text-xs hover:bg-white/[0.02] transition-colors">
                           <span className="w-5 h-5 rounded-full bg-white/10 border border-white/20 text-white flex items-center justify-center text-[10px] font-mono flex-shrink-0 mt-0.5">
                             {step.step}
                           </span>
@@ -249,37 +240,37 @@ export default function AiAgentsModal({
           <div className="space-y-5 animate-in fade-in duration-150">
             {/* Prompt Input Area */}
             <div className="space-y-2.5">
-              <div className="relative">
+              <div className="relative bg-white/5 border border-white/10 rounded-xl focus-within:border-white/30 focus-within:bg-white/[0.07] transition-all p-3 pb-12">
                 <textarea
                   rows={3}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe a feature or refactoring goal you want to plan..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-text-muted focus:outline-none focus:border-white/30 focus:bg-white/[0.07] transition-all resize-none"
+                  className="w-full bg-transparent border-none text-xs text-white placeholder-text-muted focus:outline-none resize-none"
                 />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mt-2.5">
-                  <div className="flex flex-wrap gap-1.5 items-center">
-                    <span className="text-[11px] text-text-muted font-medium">Try:</span>
-                    {samplePrompts.map((sp, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPrompt(sp)}
-                        className="text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-text-muted hover:text-white px-2 py-1 rounded-md transition-all cursor-pointer truncate max-w-[200px]"
-                        title={sp}
-                      >
-                        {sp}
-                      </button>
-                    ))}
-                  </div>
+                <button
+                  onClick={handleGeneratePlan}
+                  disabled={planLoading || !prompt.trim()}
+                  className="absolute right-2.5 bottom-2.5 px-3.5 py-1.5 bg-white/15 hover:bg-white/25 disabled:opacity-50 text-white font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                >
+                  {planLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                  <span>Generate Plan</span>
+                </button>
+              </div>
+
+              {/* Sample chips */}
+              <div className="flex flex-wrap gap-1.5 items-center pt-1">
+                <span className="text-[11px] text-text-muted font-medium">Quick:</span>
+                {samplePrompts.map((sp, i) => (
                   <button
-                    onClick={handleGeneratePlan}
-                    disabled={planLoading || !prompt.trim()}
-                    className="px-4 py-2 bg-white/15 hover:bg-white/25 disabled:opacity-50 text-white font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
+                    key={i}
+                    onClick={() => setPrompt(sp)}
+                    className="text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-text-muted hover:text-white px-2.5 py-1 rounded-md transition-all cursor-pointer truncate max-w-[280px]"
+                    title={sp}
                   >
-                    {planLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                    <span>Generate Plan</span>
+                    {sp}
                   </button>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -291,22 +282,18 @@ export default function AiAgentsModal({
               </div>
             )}
 
-            {/* Loading */}
+            {/* Loading - Clean & Minimal AI planning state without cards */}
             {planLoading && (
-              <div className="space-y-3 animate-pulse">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                  <div className="h-4 bg-white/15 rounded w-2/5" />
-                  <div className="h-6 w-20 bg-white/10 rounded-full" />
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-14 h-14 rounded-full bg-purple-500/15 blur-xl animate-pulse pointer-events-none" />
+                  <Wand2 className="w-7 h-7 text-purple-400 animate-pulse relative z-10" />
+                  <div className="absolute w-12 h-12 border border-purple-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
                 </div>
-                {[1, 2, 3].map((item) => (
-                  <div key={item} className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded bg-white/15" />
-                      <div className="h-3.5 bg-white/15 rounded w-1/3" />
-                    </div>
-                    <div className="h-3 bg-white/10 rounded w-full pl-6" />
-                  </div>
-                ))}
+                <div className="font-mono text-xs text-purple-300/90 flex items-center gap-2">
+                  <span>&gt; AI planner analyzing architectural blast radius & steps...</span>
+                  <span className="w-1.5 h-3 bg-purple-400 animate-pulse inline-block" />
+                </div>
               </div>
             )}
 
@@ -341,17 +328,17 @@ export default function AiAgentsModal({
                     </span>
                     <span className="text-text-muted text-[11px]">Click to mark done</span>
                   </div>
-                  <div className="space-y-2 pt-0.5">
+                  <div className="divide-y divide-white/10 bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden">
                     {(planResult.steps || []).map((step: any, idx: number) => {
                       const isDone = completedSteps[idx];
                       return (
                         <div
                           key={idx}
                           onClick={() => toggleStep(idx)}
-                          className={`border rounded-xl p-3.5 transition-all cursor-pointer flex items-start gap-3 ${
+                          className={`p-3.5 sm:p-4 transition-all cursor-pointer flex items-start gap-3 ${
                             isDone
-                              ? 'bg-white/[0.02] border-white/10 opacity-60'
-                              : 'bg-white/[0.04] border-white/10 hover:border-white/20'
+                              ? 'bg-black/20 opacity-60'
+                              : 'hover:bg-white/[0.03]'
                           }`}
                         >
                           <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${

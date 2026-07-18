@@ -115,7 +115,7 @@ function HeaderComponent({
 
         {/* AI Feature Tabs Container */}
         <div 
-          className={`absolute inset-0 w-full h-[36px] sm:h-[40px] flex items-center justify-between gap-0.5 sm:gap-1 bg-[#141419]/90 border border-white/10 p-0.5 sm:p-1 rounded-full shadow-inner overflow-x-auto no-scrollbar transition-all duration-300 ease-out ${
+          className={`absolute inset-0 w-full h-[36px] sm:h-[40px] flex items-center justify-between gap-0.5 sm:gap-1 bg-[#141419]/90 border border-white/10 p-0.5 sm:p-1 rounded-full shadow-inner overflow-x-auto lg:overflow-x-hidden no-scrollbar transition-all duration-300 ease-out ${
             !showInputBox 
               ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto z-20' 
               : 'opacity-0 scale-95 translate-y-1.5 pointer-events-none z-0'
@@ -124,7 +124,7 @@ function HeaderComponent({
           <button 
             onClick={onExplainRepo}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'explain'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -137,7 +137,7 @@ function HeaderComponent({
           <button 
             onClick={() => onOpenAiTab('qa')}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'qa'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -150,7 +150,7 @@ function HeaderComponent({
           <button 
             onClick={() => onOpenAiTab('planner')}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'planner'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -163,7 +163,7 @@ function HeaderComponent({
           <button 
             onClick={onOpenOrchestrator}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'engine'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -176,7 +176,7 @@ function HeaderComponent({
           <button 
             onClick={() => onOpenHealthTab('health')}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'health'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -189,7 +189,7 @@ function HeaderComponent({
           <button 
             onClick={() => onOpenHealthTab('review')}
             disabled={showInputBox}
-            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 cursor-pointer whitespace-nowrap ${
               activeFeatureTab === 'hotspots'
                 ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/20 font-semibold scale-105'
                 : 'text-text-muted hover:text-white hover:bg-white/[0.06] active:scale-95'
@@ -202,7 +202,7 @@ function HeaderComponent({
           <button 
             onClick={onExportDiagram}
             disabled={isGeneratingDiagram || showInputBox}
-            className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1.5 sm:px-2 lg:px-2.5 rounded-full text-[11px] sm:text-xs font-medium bg-white/[0.03] text-text-muted hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 h-full px-1 sm:px-1.5 lg:px-2 rounded-full text-[11px] sm:text-xs font-medium bg-white/[0.03] text-text-muted hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
           >
             {isGeneratingDiagram ? (
               <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin text-white/60 shrink-0" />

@@ -3,13 +3,13 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import RepoGraph from "@/components/RepoGraph";
-import { analyzeRepo, explainRepo, generateArchitectureDiagram } from "@/services/api";
+import { analyzeRepo, explainRepo, generateArchitectureDiagram, getRepoProgressApi } from "@/services/api";
 import { generateDrawioXml } from "@/utils/exportDrawio";
 import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
-import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap } from "lucide-react";
+import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap, CheckCircle2, File as FileIcon } from "lucide-react";
 
 const RepoExplanationModal = dynamic(() => import("@/components/RepoExplanationModal"), { ssr: false });
 const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr: false });
@@ -18,6 +18,150 @@ const MultiAgentOrchestratorModal = dynamic(() => import("@/components/MultiAgen
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
+
+function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
+  const [stepIdx, setStepIdx] = useState(0);
+  const [totalSteps, setTotalSteps] = useState(5);
+  const [stepDescription, setStepDescription] = useState("Initializing workspace...");
+  const [nextStepDescription, setNextStepDescription] = useState<string | null>("Cloning repository...");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [estimatedDurationMs, setEstimatedDurationMs] = useState(32000);
+  const [status, setStatus] = useState<"queued" | "in_progress" | "completed" | "failed">("in_progress");
+
+  // Poll backend progress every 600ms
+  useEffect(() => {
+    if (!repoUrl) return;
+
+    let isMounted = true;
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await getRepoProgressApi(repoUrl);
+        if (res.success && res.progress && isMounted) {
+          const prog = res.progress;
+          setElapsedMs(prog.elapsedTimeMs || 0);
+          setTotalSteps(prog.totalSteps || 5);
+          setEstimatedDurationMs(prog.estimatedTotalDurationMs || 32000);
+          setStatus(prog.status);
+
+          // If backend moved to a new step index, trigger our buttery smooth upward fade-out transition!
+          if (prog.stepIdx !== stepIdx && prog.stepDescription !== stepDescription) {
+            setIsTransitioning(true);
+            setTimeout(() => {
+              if (isMounted) {
+                setStepIdx(prog.stepIdx);
+                setStepDescription(prog.stepDescription);
+                setNextStepDescription(prog.nextStepDescription);
+                setIsTransitioning(false);
+              }
+            }, 500);
+          } else if (!isTransitioning) {
+            setStepIdx(prog.stepIdx);
+            setStepDescription(prog.stepDescription);
+            setNextStepDescription(prog.nextStepDescription);
+          }
+        }
+      } catch (e) {
+        // Ignore polling errors
+      }
+    }, 600);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, [repoUrl, stepIdx, stepDescription, isTransitioning]);
+
+  // Smooth local timer ticking every 100ms between backend polls for real-time progress feel
+  useEffect(() => {
+    const tickInterval = setInterval(() => {
+      if (status !== "completed") {
+        setElapsedMs((prev) => prev + 100);
+      }
+    }, 100);
+    return () => clearInterval(tickInterval);
+  }, [status]);
+
+  const progressPercent = Math.min(96, Math.max(5, Math.floor((elapsedMs / estimatedDurationMs) * 100)));
+
+  return (
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-xl animate-in fade-in duration-300 select-none px-4">
+      {/* Clean centered container - ZERO CARDS OR BOXES */}
+      <div className="flex flex-col items-center max-w-xl w-full text-center space-y-8">
+        {/* Minimal Header */}
+        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          Analyzing Repository
+        </h3>
+
+        {/* Vertical Stream: Currently Processing & Upcoming (Smooth Upward Fade-Out) */}
+        <div className="flex flex-col items-center justify-center min-h-[90px] w-full px-2 space-y-4 relative">
+          {/* Currently Processing Step (fades upward smoothly on completion) */}
+          <div
+            key={`processing-${stepIdx}`}
+            className={`flex items-center justify-center gap-3 transition-all duration-500 transform ${
+              isTransitioning
+                ? "opacity-0 -translate-y-6 scale-95 blur-[1px]"
+                : "opacity-100 translate-y-0 scale-100 animate-in fade-in slide-in-from-bottom-3 duration-500"
+            }`}
+          >
+            {isTransitioning || status === "completed" ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-in zoom-in duration-200" />
+            ) : (
+              <Loader2 className="w-4 h-4 text-emerald-400 animate-spin flex-shrink-0" />
+            )}
+            <span className={`font-mono text-xs sm:text-sm font-semibold tracking-wide truncate max-w-lg transition-colors duration-300 ${
+              isTransitioning || status === "completed" ? "text-emerald-400/90 line-through" : "text-white"
+            }`}>
+              {stepDescription}
+            </span>
+            {!isTransitioning && status !== "completed" && (
+              <span className="w-1.5 h-3 bg-emerald-400 animate-pulse inline-block flex-shrink-0" />
+            )}
+          </div>
+
+          {/* Upcoming Step */}
+          {nextStepDescription && (
+            <div
+              key={`upcoming-${stepIdx + 1}`}
+              className={`flex items-center justify-center gap-2.5 font-mono text-xs sm:text-[13px] tracking-wide transition-all duration-500 transform ${
+                isTransitioning
+                  ? "opacity-100 -translate-y-6 text-white font-medium scale-100"
+                  : "opacity-40 translate-y-0 text-gray-400 scale-95 animate-in fade-in slide-in-from-bottom-3 duration-500"
+              }`}
+            >
+              <div className="w-3.5 h-3.5 rounded-full border border-white/25 flex-shrink-0" />
+              <span className="truncate max-w-md">{nextStepDescription}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Minimal status subtext & Live Time Duration Progress */}
+        <div className="flex flex-col items-center w-full max-w-md space-y-2.5 pt-1">
+          <div className="flex items-center gap-2 text-[11px] font-mono text-gray-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            <span>Step {stepIdx + 1} of {totalSteps} • Autonomous AST extraction in progress</span>
+          </div>
+
+          <div className="w-full space-y-1.5 px-2">
+            <div className="flex items-center justify-between w-full text-[11px] font-mono text-gray-400 px-0.5">
+              <span>Elapsed: {(elapsedMs / 1000).toFixed(1)}s</span>
+              <span className="text-emerald-400/90 font-medium">
+                {status === "completed" ? "100%" : `${progressPercent}%`}
+              </span>
+              <span>Estimated: ~{(estimatedDurationMs / 1000).toFixed(0)}s</span>
+            </div>
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${status === "completed" ? 100 : progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home(){
   const [repoUrl, setRepoUrl] = useState("");
@@ -242,6 +386,7 @@ export default function Home(){
     : graph?.nodes?.find((n: any) => n.id === selectedNodeId);
 
   const [leftWidth, setLeftWidth] = useState(240);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   const [rightWidth, setRightWidth] = useState(360);
 
   useEffect(() => {
@@ -351,13 +496,14 @@ export default function Home(){
       )}
       
       <div className="flex flex-1 overflow-hidden relative">
-        {graph && (
-          <div style={{ width: leftWidth }} className="flex-shrink-0 relative max-w-[80vw] sm:max-w-[320px] lg:max-w-[420px]">
+        {graph && !isLeftSidebarCollapsed && (
+          <div style={{ width: leftWidth }} className="flex-shrink-0 relative max-w-[80vw] sm:max-w-[320px] lg:max-w-[420px] transition-all duration-300">
             <LeftSidebar 
               nodes={graph.nodes} 
               selectedNodeId={selectedNodeId}
               onNodeSelect={setSelectedNodeId}
               repoName={repoUrl.split("/").pop()?.replace(".git", "") || "Project Explorer"}
+              onToggleCollapse={() => setIsLeftSidebarCollapsed(true)}
             />
             <div 
               className="absolute top-0 -right-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
@@ -365,42 +511,25 @@ export default function Home(){
             />
           </div>
         )}
+
+        {/* Top-Left Minimized Explorer Button with File Icon */}
+        {graph && isLeftSidebarCollapsed && (
+          <button
+            onClick={() => setIsLeftSidebarCollapsed(false)}
+            title="Open Project Explorer"
+            className="absolute top-3 left-3 z-50 flex items-center gap-2 px-3 py-2 bg-black/85 hover:bg-black text-white/90 hover:text-white rounded-xl border border-white/15 backdrop-blur-md shadow-2xl transition-all duration-200 group animate-in fade-in zoom-in-95"
+          >
+            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+              <FileIcon className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <span className="text-xs font-semibold pr-1">Files</span>
+          </button>
+        )}
         
         <main className="flex-1 relative bg-transparent overflow-hidden">
 
 
-          {loading && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md p-6 animate-in fade-in duration-300">
-              <div className="flex flex-col items-center gap-6 max-w-4xl w-full">
-                <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 px-4 py-2 rounded-full shadow-lg">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="text-white font-semibold text-xs sm:text-sm tracking-wide">Analyzing Repository Structure & Generating Interactive AST Map...</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="animate-pulse bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3 shadow-xl backdrop-blur-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/10 shrink-0" />
-                        <div className="flex-1 flex flex-col gap-1.5">
-                          <div className="h-4 bg-white/15 rounded-md w-3/4" />
-                          <div className="h-3 bg-white/10 rounded-md w-1/2" />
-                        </div>
-                      </div>
-                      <div className="h-10 bg-white/[0.04] rounded-lg border border-white/5 p-2 mt-1 flex flex-col gap-1.5">
-                        <div className="h-2.5 bg-white/10 rounded w-full" />
-                        <div className="h-2.5 bg-white/10 rounded w-4/5" />
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        <div className="h-5 w-14 bg-white/10 rounded-full" />
-                        <div className="h-5 w-16 bg-white/10 rounded-full" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          {loading && <AnalysisProgressOverlay repoUrl={repoUrl} />}
           
           {!graph ? (
             <LandingPage 

@@ -236,7 +236,7 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 text-white font-medium">
               <Sparkles className="w-4 h-4 text-brand" />
-              <span>AI Explanation</span>
+              <span>Explanation</span>
             </div>
             {!aiExplanation && (
               <button 
@@ -470,14 +470,14 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
             </div>
 
             {isSimulating && (
-              <div className="space-y-3 animate-pulse">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                  <div className="h-4 bg-white/15 rounded w-1/3" />
-                  <div className="h-3 bg-white/10 rounded w-full" />
+              <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-12 h-12 rounded-full bg-red-500/10 blur-xl animate-pulse" />
+                  <ShieldAlert className="w-6 h-6 text-red-400 animate-pulse relative z-10" />
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                  <div className="h-3 bg-white/15 rounded w-1/4" />
-                  <div className="h-3 bg-white/10 rounded w-4/5" />
+                <div className="font-mono text-xs text-red-300/90 flex items-center gap-2">
+                  <span>&gt; AI simulator tracing blast radius & dependency breakage...</span>
+                  <span className="w-1.5 h-3 bg-red-400 animate-pulse inline-block" />
                 </div>
               </div>
             )}
@@ -578,7 +578,7 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm flex items-center justify-between">
               <div className="flex items-center gap-2 text-white font-medium">
                 <BookOpen className="w-4 h-4 text-brand" />
-                <span>Repository AI Memory</span>
+                <span>Repository Memory</span>
               </div>
               <button
                 onClick={handleLoadMemory}
@@ -591,15 +591,14 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
             </div>
 
             {isLoadingMemory && (
-              <div className="space-y-3 animate-pulse">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2.5">
-                  <div className="h-4 bg-white/15 rounded w-2/5" />
-                  <div className="h-3 bg-white/10 rounded w-full" />
-                  <div className="h-3 bg-white/10 rounded w-3/4" />
+              <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in duration-300">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-12 h-12 rounded-full bg-blue-500/10 blur-xl animate-pulse" />
+                  <Layers className="w-6 h-6 text-blue-400 animate-pulse relative z-10" />
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                  <div className="h-3.5 bg-white/15 rounded w-1/3" />
-                  <div className="h-3 bg-white/10 rounded w-5/6" />
+                <div className="font-mono text-xs text-blue-300/90 flex items-center gap-2">
+                  <span>&gt; Indexing neural memory structure across repository modules...</span>
+                  <span className="w-1.5 h-3 bg-blue-400 animate-pulse inline-block" />
                 </div>
               </div>
             )}
