@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import ClarityProvider from "@/components/ClarityProvider";
 import PostHogProvider from "@/components/PostHogProvider";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default function RootLayout({
         {children}
         <ClarityProvider />
         <PostHogProvider />
+        <Analytics />
       </body>
     </html>
   );
