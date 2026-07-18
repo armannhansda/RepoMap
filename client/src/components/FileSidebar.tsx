@@ -188,25 +188,25 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
   return (
     <div className="w-full border-l border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-sm text-text-main shadow-2xl overflow-hidden shrink-0 relative z-40">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10 bg-transparent">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
-            <FileText className="w-4 h-4 text-white" />
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-white/10 bg-transparent">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           </div>
           <div>
-            <h2 className="font-semibold text-text-main">File Details</h2>
-            <p className="text-xs text-text-muted">Selected Node</p>
+            <h2 className="font-semibold text-xs sm:text-sm text-text-main">File Details</h2>
+            <p className="text-[10px] sm:text-xs text-text-muted">Selected Node</p>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-main hover:bg-surface-hover rounded-md transition-colors">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1 sm:p-1.5 text-text-muted hover:text-text-main hover:bg-surface-hover rounded-md transition-colors">
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 px-4 bg-transparent shrink-0 overflow-x-auto">
+      <div className="flex border-b border-white/10 px-2 sm:px-4 bg-transparent shrink-0 overflow-x-auto no-scrollbar">
         {["Details", "Source", "Blast Radius", "Memory"].map(tab => (
           <button
             key={tab}
@@ -216,9 +216,9 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
                 handleLoadMemory();
               }
             }}
-            className={`px-4 py-3 border-b-2 font-medium transition-colors whitespace-nowrap ${
+            className={`px-2.5 sm:px-4 py-2 sm:py-3 border-b-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === tab 
-                ? "border-white text-white" 
+                ? "border-white text-white font-semibold" 
                 : "border-transparent text-text-muted hover:text-white"
             }`}
           >
@@ -263,36 +263,36 @@ function FileSidebarComponent({ node, repoId, onClose }: Props) {
 
         {/* Title & Path */}
         <div>
-          <h1 className="text-2xl font-bold mb-3">{node.label}</h1>
-          <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-md px-3 py-2 text-xs font-mono text-text-muted backdrop-blur-sm hover:bg-white/10 transition-colors">
-            <div className="flex items-center gap-2 truncate">
-              <FolderOpen className="w-4 h-4" />
+          <h1 className="text-base sm:text-lg lg:text-xl font-bold mb-2 break-words text-white">{node.label}</h1>
+          <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-mono text-text-muted backdrop-blur-sm hover:bg-white/10 transition-colors">
+            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+              <FolderOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="truncate">{filePath || node.label}</span>
             </div>
-            <button className="p-1 hover:text-text-main transition-colors shrink-0 ml-2">
-              <Copy className="w-4 h-4" />
+            <button className="p-1 hover:text-text-main transition-colors shrink-0 ml-1.5">
+              <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
 
         {/* Stats Grid */}
         {node.type === "file" && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <div className="text-xl font-bold text-text-main">{locCount > 0 ? locCount : '-'}</div>
-              <div className="text-xs text-text-muted">Lines of Code (LOC)</div>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-text-main">{locCount > 0 ? locCount : '-'}</div>
+              <div className="text-[10px] sm:text-xs text-text-muted">Lines of Code (LOC)</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <div className="text-xl font-bold text-node-component">{dependenciesCount}</div>
-              <div className="text-xs text-text-muted">Dependencies</div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-node-component">{dependenciesCount}</div>
+              <div className="text-[10px] sm:text-xs text-text-muted">Dependencies</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <div className="text-xl font-bold text-orange-400">{dependentsCount}</div>
-              <div className="text-xs text-text-muted">Dependents</div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-orange-400">{dependentsCount}</div>
+              <div className="text-[10px] sm:text-xs text-text-muted">Dependents</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
-              <div className="text-xl font-bold text-text-main">{commitsCount}</div>
-              <div className="text-xs text-text-muted">Commits</div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2 sm:p-3 text-center backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+              <div className="text-base sm:text-lg lg:text-xl font-bold text-text-main">{commitsCount}</div>
+              <div className="text-[10px] sm:text-xs text-text-muted">Commits</div>
             </div>
           </div>
         )}

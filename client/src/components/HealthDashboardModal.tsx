@@ -153,7 +153,7 @@ export default function HealthDashboardModal({
   };
 
   return (
-    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[740px]">
+    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[92vw] sm:w-[600px] md:w-[640px] lg:w-[680px] xl:w-[740px]">
       <div className="space-y-4 pt-1">
           
           {/* TAB 1: HEALTH DASHBOARD */}

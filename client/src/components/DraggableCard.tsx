@@ -11,7 +11,7 @@ interface DraggableCardProps {
 
 export default function DraggableCard({
   children,
-  widthClass = "w-[680px]",
+  widthClass = "w-[92vw] sm:w-[580px] md:w-[620px] lg:w-[640px] xl:w-[680px]",
   onClose,
   isOpen
 }: DraggableCardProps) {
@@ -87,7 +87,7 @@ export default function DraggableCard({
         }}
         onMouseDown={handleMouseDown}
         onClick={(e) => e.stopPropagation()}
-        className={`absolute top-5 left-1/2 ${widthClass} max-w-[calc(100%-2rem)] max-h-[82vh] z-40 bg-[#0d0d10]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col text-white font-sans animate-in fade-in zoom-in-95 slide-in-from-top-3 duration-250 ease-out cursor-grab active:cursor-grabbing select-none`}
+        className={`absolute top-3 sm:top-5 left-1/2 ${widthClass} max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-2rem)] max-h-[85vh] z-40 bg-[#0d0d10]/95 backdrop-blur-2xl border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col text-white font-sans animate-in fade-in zoom-in-95 slide-in-from-top-3 duration-250 ease-out cursor-grab active:cursor-grabbing select-none`}
       >
         {/* Subtle top drag indicator */}
         <div className="w-full flex items-center justify-center pb-2 cursor-grab active:cursor-grabbing select-none shrink-0">

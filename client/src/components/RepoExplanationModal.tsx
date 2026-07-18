@@ -15,7 +15,7 @@ export default function RepoExplanationModal({ isOpen, onClose, repoName, explan
   if (!isOpen) return null;
 
   return (
-    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[640px]">
+    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[92vw] sm:w-[560px] md:w-[600px] lg:w-[620px] xl:w-[640px]">
       {/* Title */}
       <div className="flex items-center gap-2 mb-3 pr-8 cursor-move">
         <Sparkles className="w-4 h-4 text-white/80 shrink-0" />

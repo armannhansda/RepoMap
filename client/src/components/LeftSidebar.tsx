@@ -110,15 +110,15 @@ function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }:
   };
 
   return (
-    <div className="w-full border-r border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-sm relative z-40">
+    <div className="w-full border-r border-white/10 bg-black/20 backdrop-blur-md flex flex-col h-full text-xs sm:text-sm relative z-40">
       {/* Header */}
-      <div className="p-4 border-b border-white/10 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center">
-          <Folder className="w-4 h-4 text-white" />
+      <div className="p-3 sm:p-4 border-b border-white/10 flex items-center gap-2 sm:gap-3">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+          <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
         </div>
         <div className="overflow-hidden">
-          <h2 className="font-semibold text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
-          <p className="text-xs text-text-muted">main branch</p>
+          <h2 className="font-semibold text-xs sm:text-sm text-text-main truncate" title={repoName}>{repoName || "Project"}</h2>
+          <p className="text-[10px] sm:text-xs text-text-muted">main branch</p>
         </div>
       </div>
 
@@ -127,9 +127,9 @@ function LeftSidebarComponent({ nodes, onNodeSelect, selectedNodeId, repoName }:
         
         {/* Explorer Section */}
         <div>
-          <div className="flex items-center justify-between px-4 py-2 text-white font-medium bg-white/5 border-l-2 border-white backdrop-blur-sm">
+          <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 text-white font-medium bg-white/5 border-l-2 border-white backdrop-blur-sm text-xs sm:text-sm">
             <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4" />
+              <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Explorer</span>
             </div>
           </div>

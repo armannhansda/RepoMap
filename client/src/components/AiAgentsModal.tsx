@@ -101,7 +101,7 @@ export default function AiAgentsModal({
   ];
 
   return (
-    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[680px]">
+    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[92vw] sm:w-[580px] md:w-[620px] lg:w-[640px] xl:w-[680px]">
       {/* Content Area */}
       <div className="space-y-4 pt-1">
         

@@ -241,16 +241,37 @@ export default function Home(){
     ? { id: "__MEMORY__", label: "Repository Memory & Architecture", type: "memory" } 
     : graph?.nodes?.find((n: any) => n.id === selectedNodeId);
 
-  const [leftWidth, setLeftWidth] = useState(256);
-  const [rightWidth, setRightWidth] = useState(400);
+  const [leftWidth, setLeftWidth] = useState(240);
+  const [rightWidth, setRightWidth] = useState(360);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth <= 1280) {
+          setLeftWidth(Math.min(220, Math.floor(window.innerWidth * 0.22)));
+          setRightWidth(Math.min(340, Math.floor(window.innerWidth * 0.32)));
+        } else if (window.innerWidth <= 1440) {
+          setLeftWidth(240);
+          setRightWidth(360);
+        } else {
+          setLeftWidth(256);
+          setRightWidth(400);
+        }
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const startResizeLeft = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = leftWidth;
+    const maxAllowed = typeof window !== 'undefined' ? Math.min(500, Math.floor(window.innerWidth * 0.4)) : 500;
     
     const onMouseMove = (e: MouseEvent) => {
-      setLeftWidth(Math.max(150, Math.min(600, startWidth + (e.clientX - startX))));
+      setLeftWidth(Math.max(160, Math.min(maxAllowed, startWidth + (e.clientX - startX))));
     };
     
     const onMouseUp = () => {
@@ -266,9 +287,10 @@ export default function Home(){
     e.preventDefault();
     const startX = e.clientX;
     const startWidth = rightWidth;
+    const maxAllowed = typeof window !== 'undefined' ? Math.min(650, Math.floor(window.innerWidth * 0.45)) : 650;
     
     const onMouseMove = (e: MouseEvent) => {
-      setRightWidth(Math.max(200, Math.min(800, startWidth - (e.clientX - startX))));
+      setRightWidth(Math.max(220, Math.min(maxAllowed, startWidth - (e.clientX - startX))));
     };
     
     const onMouseUp = () => {
@@ -330,7 +352,7 @@ export default function Home(){
       
       <div className="flex flex-1 overflow-hidden relative">
         {graph && (
-          <div style={{ width: leftWidth }} className="flex-shrink-0 relative">
+          <div style={{ width: leftWidth }} className="flex-shrink-0 relative max-w-[80vw] sm:max-w-[320px] lg:max-w-[420px]">
             <LeftSidebar 
               nodes={graph.nodes} 
               selectedNodeId={selectedNodeId}
@@ -352,10 +374,10 @@ export default function Home(){
               <div className="flex flex-col items-center gap-6 max-w-4xl w-full">
                 <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 px-4 py-2 rounded-full shadow-lg">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="text-white font-semibold text-sm tracking-wide">Analyzing Repository Structure & Generating Interactive AST Map...</span>
+                  <span className="text-white font-semibold text-xs sm:text-sm tracking-wide">Analyzing Repository Structure & Generating Interactive AST Map...</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
                   {[1, 2, 3].map((item) => (
                     <div key={item} className="animate-pulse bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3 shadow-xl backdrop-blur-lg">
                       <div className="flex items-center gap-3">
@@ -436,7 +458,7 @@ export default function Home(){
         </main>
 
         {graph && selectedNode && (
-          <div style={{ width: rightWidth }} className="flex-shrink-0 relative">
+          <div style={{ width: rightWidth }} className="flex-shrink-0 relative max-w-[85vw] sm:max-w-[450px] lg:max-w-[600px]">
             <div 
               className="absolute top-0 -left-1 w-2 h-full cursor-col-resize hover:bg-white/30 z-50 transition-colors"
               onMouseDown={startResizeRight}

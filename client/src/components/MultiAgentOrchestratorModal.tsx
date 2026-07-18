@@ -74,7 +74,7 @@ export default function MultiAgentOrchestratorModal({
   };
 
   return (
-    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[680px]">
+    <DraggableCard isOpen={isOpen} onClose={onClose} widthClass="w-[92vw] sm:w-[580px] md:w-[620px] lg:w-[640px] xl:w-[680px]">
       {/* Input Bar */}
       <form onSubmit={handleRunOrchestrator} className="space-y-2.5 pt-1">
         <div className="relative flex items-center">
