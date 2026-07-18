@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🗺️ RepoMap Frontend (`client/`)
 
-## Getting Started
+This directory contains the frontend client application for **RepoMap**, built with [Next.js 15](https://nextjs.org/) (`App Router`), [React Flow](https://reactflow.dev/), and [Tailwind CSS v4](https://tailwindcss.com/).
 
-First, run the development server:
+## ✨ Frontend Highlights
 
+- **🎯 Interactive 2D Spatial Graph (`React Flow`)**: Custom AST node components (`CustomNode.tsx`), smooth-step edges, fit-to-view auto-zoom, and multi-viewport layout engine.
+- **🎨 High-Density Cardless Editorial UI**: High-impact monochrome aesthetics, glassmorphic styling (`bg-black/80 backdrop-blur-2xl border-white/15`), and scroll-triggered animations (`ScrollReveal`).
+- **🔍 Split-Screen Code Viewer & Call Tracing**: Live syntax highlighting with `react-syntax-highlighter` (`oneDark` theme) right alongside the spatial map.
+- **🤖 Built-in AI Q&A & Explanation Panel**: Real-time markdown rendering (`react-markdown`) for architectural explanations powered by Google Gemini and Groq.
+- **💾 Local Caching via IndexedDB**: Persistent caching of parsed graphs, file structures, and open tabs using `idb` to guarantee instant page re-loads without re-parsing.
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Copy `.env-example` to `.env` and set the backend API URL:
+```bash
+cp .env-example .env
+```
+Inside `.env`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5001
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run the Development Server
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser to explore any GitHub repository visually!
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Directory Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **`src/app/`**: Next.js App Router root layout, page components, and global font configurations (`Inter` & `Fira Code`).
+- **`src/components/`**:
+  - `LandingPage.tsx`: The cardless editorial hero, onboarding stepper, and live simulation console.
+  - `RepoGraph.tsx`: The primary interactive React Flow spatial map and multi-tab code viewer workspace.
+  - `CustomNode.tsx`: Memoized custom node rendering with function badges and status indicators.
+- **`src/services/`**: API client methods communicating with the `server/` backend (`/api/parse`, `/api/file`, `/api/explain`).
+- **`src/lib/db/`**: IndexedDB storage adapters (`openedFiles.ts` & `graphCache.ts`) for zero-latency local caching.
+- **`src/utils/`**: Graph layout math and AST structural positioning utilities.
