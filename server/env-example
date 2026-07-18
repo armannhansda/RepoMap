@@ -1,0 +1,4 @@
+PORT=5001
+GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here_as_fallback
+POSTHOG_API_KEY=posthog api key
