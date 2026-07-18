@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ClarityProvider from "@/components/ClarityProvider";
+import PostHogProvider from "@/components/PostHogProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <ClarityProvider />
+        <PostHogProvider />
       </body>
     </html>
   );

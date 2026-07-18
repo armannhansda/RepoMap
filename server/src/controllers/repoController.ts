@@ -6,6 +6,7 @@ import { buildRepoMemory } from "../services/memoryBuilder.ts";
 import { getRepoMemory } from "../store/memoryStore.ts";
 import { jobPool } from "../services/jobQueue.ts";
 import { cleanupOldRepositories } from "../services/tempCleanup.ts";
+import { captureServerEvent } from "../services/posthogService.ts";
 
 export async function analyzeRepo(
   req: Request,
@@ -28,6 +29,7 @@ export async function analyzeRepo(
 
     if (cachedAnalysis && cachedMemory) {
       console.log(`[Cache Hit] Returning cached AST graph and memory for: ${repoUrl}`);
+      captureServerEvent("server_user", "analyze_repo_cache_hit", { repoUrl });
       res.json({
         success: true,
         repoId: repoUrl,
@@ -36,6 +38,8 @@ export async function analyzeRepo(
       });
       return;
     }
+
+    captureServerEvent("server_user", "analyze_repo_started", { repoUrl });
 
     // 2. Concurrency Queue & Request Coalescer (Pillars #1 & #2)
     // Prevents duplicate clones and caps concurrent AST heavy workers to protect RAM/CPU
@@ -62,6 +66,12 @@ export async function analyzeRepo(
       return { graph, memory };
     });
 
+    captureServerEvent("server_user", "analyze_repo_completed", {
+      repoUrl,
+      nodesCount: graph.nodes?.length ?? 0,
+      edgesCount: graph.edges?.length ?? 0,
+    });
+
     res.json({
       success: true,
       repoId: repoUrl,
@@ -70,6 +80,10 @@ export async function analyzeRepo(
     });
   } catch (error) {
     console.error("AnalyzeRepo error:", error);
+    captureServerEvent("server_user", "analyze_repo_failed", {
+      repoUrl: req.body?.repoUrl || "unknown",
+      error: error instanceof Error ? error.message : String(error),
+    });
     res.status(500).json({
       error: "failed to analyze repository",
     });

@@ -4,6 +4,7 @@ import cors from 'cors';
 import repoRoutes from "./routes/repoRoutes.ts"
 import fileRoutes from "./routes/fileRoutes.ts"
 import aiRoutes from "./routes/aiRoutes.ts"
+import { shutdownPostHog } from "./services/posthogService.ts";
 
 const app = express();
 
@@ -44,3 +45,13 @@ function listen(port: number) {
 }
 
 export const server = listen(DEFAULT_PORT);
+
+process.on("SIGTERM", async () => {
+  await shutdownPostHog();
+  server.close();
+});
+
+process.on("SIGINT", async () => {
+  await shutdownPostHog();
+  server.close();
+});
