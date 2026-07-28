@@ -96,8 +96,8 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }: LandingPageProps) {
-  const nodeTypes = React.useMemo(() => initialNodeTypes, []);
-  const proOptions = React.useMemo(() => ({ hideAttribution: true }), []);
+  const [nodeTypes] = React.useState(initialNodeTypes);
+  const [proOptions] = React.useState({ hideAttribution: true });
   const defaultViewport = React.useMemo(() => ({ x: 0, y: 50, zoom: 0.8 }), []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);

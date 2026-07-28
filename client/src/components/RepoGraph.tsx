@@ -37,8 +37,8 @@ function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
 }
 
 function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
-  const nodeTypes = useMemo(() => initialNodeTypes, []);
-  const proOptions = useMemo(() => ({ hideAttribution: true }), []);
+  const [nodeTypes] = useState(initialNodeTypes);
+  const [proOptions] = useState({ hideAttribution: true });
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);

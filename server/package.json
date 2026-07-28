@@ -10,8 +10,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "RepoMap Backend Server & Parser Engine",
+  "author": "Arman Hansda",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@google/genai": "^2.9.0",
