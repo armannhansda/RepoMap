@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="./client/public/icon.svg" alt="RepoMap Logo" width="80" height="80" />
+  <img src="./client/src/app/icon.svg" alt="RepoMap Logo" width="80" height="80" />
 </p>
 
 <h3 align="center">
