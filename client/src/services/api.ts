@@ -131,3 +131,25 @@ export async function getRepoProgressApi(repoUrl: string) {
   const response = await fetch(`${API_BASE_URL}/api/repo/progress?repoUrl=${encodeURIComponent(repoUrl)}`);
   return response.json();
 }
+
+export async function generateFlowApi(payload: { repoId: string; prompt: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/generate-flow`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+export async function getPresetFlowsApi(payload: { repoId: string; graph?: any }) {
+  const response = await fetch(`${API_BASE_URL}/api/ai/preset-flows`, {
+    method: "POST",
+    headers: {
+      "Content-type": "application/json",
+    },
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}

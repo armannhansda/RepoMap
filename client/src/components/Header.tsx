@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { 
   Search, CornerDownLeft, Plus, Sparkles, BookOpen, Bot, 
-  ListTodo, Zap, Activity, ShieldCheck, Download, Loader2, X, Home 
+  ListTodo, Zap, Activity, ShieldCheck, Download, Loader2, X, Home, PlaySquare 
 } from "lucide-react";
 import Image from "next/image";
 
@@ -19,12 +19,14 @@ interface HeaderProps {
   onExportDiagram: () => void;
   isGeneratingDiagram?: boolean;
   activeFeatureTab?: string | null;
+  onTogglePlayground?: () => void;
+  activeViewMode?: 'map' | 'playground';
 }
 
 function HeaderComponent({ 
   repoUrl, setRepoUrl, onAnalyze, onNewAnalysis, loading,
   onExplainRepo, onOpenMemory, onOpenAiTab, onOpenOrchestrator, 
-  onOpenHealthTab, onExportDiagram, isGeneratingDiagram, activeFeatureTab
+  onOpenHealthTab, onExportDiagram, isGeneratingDiagram, activeFeatureTab, onTogglePlayground, activeViewMode
 }: HeaderProps) {
   const [showInputBox, setShowInputBox] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

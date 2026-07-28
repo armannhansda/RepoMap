@@ -5,15 +5,27 @@ import "reactflow/dist/style.css";
 import { getLayoutedElements } from "@/utils/layoutGragh";
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import CustomNode from "./CustomNode";
+import FlowCustomNode from "./FlowCustomNode";
+import FlowAnimatedEdge from "./FlowAnimatedEdge";
+import FlowPlaybackBar from "./FlowPlaybackBar";
+import FlowStepInspector from "./FlowStepInspector";
+import { FlowScenario, FlowStep, FlowNodeStatus } from "@/types/flowTypes";
+import { generateFlowApi, getPresetFlowsApi } from "@/services/api";
+import { getCachedFlows, saveCachedFlows } from "@/utils/flowSessionCache";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
 import { getFileContent, explainNode } from "@/services/api";
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Play } from "lucide-react";
 
 const initialNodeTypes = {
-  custom: CustomNode,
+  custom: FlowCustomNode,
+};
+
+const initialEdgeTypes = {
+  default: FlowAnimatedEdge,
+  flowAnimated: FlowAnimatedEdge,
 };
 
 interface Props {
@@ -21,27 +33,219 @@ interface Props {
   repoId: string;
   onNodeSelect: (node: any) => void;
   selectedNodeId?: string;
+  viewMode?: string;
+  onTogglePlayground?: () => void;
 }
 
-function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
+function FitViewOnUpdate({ nodes, viewMode }: { nodes: any[]; viewMode?: string }) {
   const { fitView } = useReactFlow();
+  const prevViewMode = useRef(viewMode);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [nodes, fitView]);
+    // Prevent view shift when merely switching between structure map and playground without node changes
+    if (prevViewMode.current !== viewMode) {
+      prevViewMode.current = viewMode;
+      return;
+    }
+    // In Graph Mode ('map'), behave exactly as before: fitView over all layouted nodes whenever nodes update!
+    if (viewMode !== 'playground' && nodes.length > 0) {
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [nodes, fitView, viewMode]);
 
   return null;
 }
 
-function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
+function FitViewOnStep({ targetNodeId, fromNodeId, isPlaying }: { targetNodeId?: string; fromNodeId?: string; isPlaying: boolean }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    if (!isPlaying || (!targetNodeId && !fromNodeId)) return;
+    const timer = setTimeout(() => {
+      const nodesToFit = [targetNodeId, fromNodeId].filter(Boolean) as string[];
+      if (nodesToFit.length > 0) {
+        fitView({ nodes: nodesToFit.map((id) => ({ id })), padding: 0.4, duration: 600 });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [targetNodeId, fromNodeId, isPlaying, fitView]);
+
+  return null;
+}
+
+function GraphController({ zoomToNodeRef, selectedNodeId, viewMode }: { zoomToNodeRef: React.MutableRefObject<((nodeId: string) => void) | null>; selectedNodeId?: string; viewMode?: string }) {
+  const { fitView } = useReactFlow();
+  const prevSelectedRef = useRef<string | undefined>(selectedNodeId);
+
+  const zoomToNode = useCallback((nodeId: string) => {
+    if (!nodeId) return;
+    if (viewMode === 'playground') {
+      // In playground mode, zoom directly to the specific step node
+      fitView({ nodes: [{ id: nodeId }], duration: 650, maxZoom: 1.15, padding: 0.8 });
+    } else {
+      // In graph mode ('map'), fit over the entire layouted subgraph exactly like original behavior
+      fitView({ padding: 0.2, duration: 800 });
+    }
+  }, [fitView, viewMode]);
+
+  useEffect(() => {
+    zoomToNodeRef.current = zoomToNode;
+  }, [zoomToNodeRef, zoomToNode]);
+
+  useEffect(() => {
+    if (selectedNodeId && selectedNodeId !== prevSelectedRef.current) {
+      prevSelectedRef.current = selectedNodeId;
+      if (viewMode === 'playground') {
+        const timer = setTimeout(() => {
+          zoomToNode(selectedNodeId);
+        }, 60);
+        return () => clearTimeout(timer);
+      }
+    }
+    prevSelectedRef.current = selectedNodeId;
+  }, [selectedNodeId, zoomToNode, viewMode]);
+
+  return null;
+}
+
+function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId, viewMode = 'map', onTogglePlayground }: Props) {
   const nodeTypes = useMemo(() => initialNodeTypes, []);
+  const edgeTypes = useMemo(() => initialEdgeTypes, []);
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const zoomToNodeRef = useRef<((nodeId: string) => void) | null>(null);
+
+  // Flow Playground Playback State
+  const [scenario, setScenario] = useState<FlowScenario | null>(null);
+  const [presets, setPresets] = useState<FlowScenario[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  const [speed, setSpeed] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [inspectedStep, setInspectedStep] = useState<FlowStep | null>(null);
+  const [loadingPresets, setLoadingPresets] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Fetch preset flows on initial mount or graph change (with session caching)
+  useEffect(() => {
+    if (!graph || !graph.nodes || graph.nodes.length === 0) return;
+    const cacheKey = repoId || "repo";
+
+    const cached = getCachedFlows(cacheKey);
+    if (cached && Array.isArray(cached.presets)) {
+      setPresets(cached.presets);
+      if (!scenario && cached.presets.length > 0) {
+        const target = cached.presets.find((p) => p.id === cached.selectedScenarioId) || cached.presets[0];
+        setScenario(target);
+      }
+      return;
+    }
+
+    let mounted = true;
+    setLoadingPresets(true);
+
+    getPresetFlowsApi({ repoId: cacheKey, graph })
+      .then((res) => {
+        if (mounted && res.success && Array.isArray(res.presets)) {
+          setPresets(res.presets);
+          const first = res.presets.length > 0 ? res.presets[0] : null;
+          if (first && !scenario) {
+            setScenario(first);
+          }
+          saveCachedFlows(cacheKey, res.presets, first?.id);
+        }
+      })
+      .catch((err) => console.error("Error loading preset flows:", err))
+      .finally(() => {
+        if (mounted) setLoadingPresets(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [graph, repoId]);
+
+  // Timer tick for playing animation
+  useEffect(() => {
+    if (!isPlaying || !scenario || !scenario.steps || scenario.steps.length === 0) return;
+
+    const currentDuration = scenario.steps[currentStepIndex]?.durationMs || 1800;
+    const stepInterval = Math.max(400, currentDuration / speed);
+
+    const timer = setTimeout(() => {
+      setCurrentStepIndex((prev) => {
+        if (prev + 1 >= scenario.steps.length) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, stepInterval);
+
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentStepIndex, scenario, speed]);
+
+  // Update inspected step whenever currentStepIndex changes
+  useEffect(() => {
+    if (scenario && currentStepIndex >= 0 && currentStepIndex < scenario.steps.length) {
+      setInspectedStep(scenario.steps[currentStepIndex]);
+    } else if (currentStepIndex === -1) {
+      setInspectedStep(null);
+    }
+  }, [currentStepIndex, scenario]);
+
+  // Handle custom flow generation
+  const handleGenerateCustomFlow = useCallback(async (prompt: string) => {
+    if (!graph || !graph.nodes) return;
+    setIsGenerating(true);
+    setIsPlaying(false);
+    const cacheKey = repoId || "repo";
+    try {
+      const res = await generateFlowApi({ repoId: cacheKey, prompt, graph });
+      if (res.success && res.scenario) {
+        setPresets((prev) => {
+          const updated = [res.scenario, ...prev.filter((p) => p.id !== res.scenario.id)];
+          saveCachedFlows(cacheKey, updated, res.scenario.id);
+          return updated;
+        });
+        setScenario(res.scenario);
+        setCurrentStepIndex(0);
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error("Failed to generate custom flow:", err);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [graph, repoId]);
+
+  const handleSelectScenario = useCallback((newScenario: FlowScenario) => {
+    setScenario(newScenario);
+    setCurrentStepIndex(-1);
+    setIsPlaying(false);
+    setInspectedStep(null);
+    const cacheKey = repoId || "repo";
+    setPresets((prev) => {
+      saveCachedFlows(cacheKey, prev, newScenario.id);
+      return prev;
+    });
+  }, [repoId]);
+
+  const handleSeek = useCallback((stepIdx: number) => {
+    setCurrentStepIndex(stepIdx);
+    setIsPlaying(false);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setCurrentStepIndex(-1);
+    setIsPlaying(false);
+    setInspectedStep(null);
+  }, []);
 
   useEffect(() => {
     if (!graph || !graph.nodes) {
@@ -317,6 +521,106 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
   }, []);
 
   const { displayNodes, displayEdges } = useMemo(() => {
+    if (viewMode === 'playground') {
+      const involvedIds = new Set<string>();
+      const nodeStepMap = new Map<string, { activeStep: number; visitedSteps: number[] }>();
+
+      if (scenario && scenario.steps && scenario.steps.length > 0) {
+        scenario.steps.forEach((st, idx) => {
+          [st.fromNodeId, st.toNodeId].forEach((id) => {
+            if (!id) return;
+            involvedIds.add(id);
+            const current = nodeStepMap.get(id) || { activeStep: -1, visitedSteps: [] };
+            if (idx === currentStepIndex) {
+              current.activeStep = idx + 1;
+            } else if (idx < currentStepIndex) {
+              current.visitedSteps.push(idx + 1);
+            }
+            nodeStepMap.set(id, current);
+          });
+        });
+      }
+
+      const rawNodes = nodes.map((n) => {
+        const info = nodeStepMap.get(n.id);
+        let status: FlowNodeStatus = 'idle';
+        let activeStepNumber: number | undefined;
+
+        if (info) {
+          if (info.activeStep > 0) {
+            status = 'active';
+            activeStepNumber = info.activeStep;
+          } else if (info.visitedSteps.length > 0) {
+            status = 'visited';
+          } else {
+            status = 'flow_target';
+          }
+        } else if (involvedIds.size > 0) {
+          status = 'dimmed';
+        }
+
+        return {
+          ...n,
+          type: 'custom',
+          data: {
+            ...n.data,
+            status,
+            activeStepNumber,
+          },
+        };
+      });
+
+      const rawEdges = edges.map((e) => {
+        const isFlowEdge = involvedIds.has(e.source) && involvedIds.has(e.target);
+        const isDimmed = involvedIds.size > 0 && !isFlowEdge;
+        return {
+          ...e,
+          type: 'flowAnimated',
+          data: {
+            ...e.data,
+            isExecuting: false,
+            isFlowEdge,
+            isDimmed,
+          },
+        };
+      });
+
+      if (scenario && scenario.steps && scenario.steps.length > 0) {
+        scenario.steps.forEach((st, idx) => {
+          if (!st.fromNodeId || !st.toNodeId) return;
+
+          const isExecuting = idx === currentStepIndex;
+          const isVisitedStep = currentStepIndex >= 0 && idx < currentStepIndex;
+          const isRoadmapStep = currentStepIndex === -1 || idx > currentStepIndex;
+
+          rawEdges.push({
+            id: `flow-step-${st.id || idx}-${idx}`,
+            source: st.fromNodeId,
+            target: st.toNodeId,
+            type: 'flowAnimated',
+            zIndex: isExecuting ? 50 : isVisitedStep ? 30 : 20,
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: isExecuting || isVisitedStep ? "#10b981" : "rgba(16, 185, 129, 0.75)",
+              width: 18,
+              height: 18,
+            },
+            data: {
+              isExecuting,
+              isVisitedStep,
+              isRoadmapStep,
+              isFlowEdge: true,
+              isDimmed: false,
+              stepNumber: idx + 1,
+              label: st.label,
+            },
+          });
+        });
+      }
+
+      return { displayNodes: rawNodes, displayEdges: rawEdges };
+    }
+
     const activeId = hoveredNode?.id || selectedNodeId;
     if (!activeId) {
       return { displayNodes: nodes, displayEdges: edges };
@@ -365,7 +669,9 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
     });
 
     return { displayNodes: highlightedNodes, displayEdges: highlightedEdges };
-  }, [nodes, edges, hoveredNode, selectedNodeId]);
+  }, [nodes, edges, hoveredNode, selectedNodeId, viewMode, scenario, currentStepIndex]);
+
+  const activeStep = scenario && currentStepIndex >= 0 ? scenario.steps[currentStepIndex] : null;
 
   return (
     <div 
@@ -388,9 +694,15 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         onMove={handleMove}
-        onNodeClick={(_, node) => onNodeSelect(node)}
+        onNodeClick={(_, node) => {
+          onNodeSelect(node);
+          if (zoomToNodeRef.current) {
+            zoomToNodeRef.current(node.id);
+          }
+        }}
         onNodeDragStart={() => {
           setIsDragging(true);
           setHoveredNode(null);
@@ -399,7 +711,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
           setIsDragging(false);
         }}
         onNodeMouseEnter={(e, node) => {
-          if (!isDragging) {
+          if (!isDragging && viewMode !== 'playground') {
             if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
             if (!hoveredNode || hoveredNode.id !== node.id) {
               setHoveredNode(node.data);
@@ -415,7 +727,9 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         }}
         proOptions={proOptions}
       >
-        <FitViewOnUpdate nodes={nodes} />
+        <FitViewOnUpdate nodes={nodes} viewMode={viewMode} />
+        <FitViewOnStep targetNodeId={activeStep?.toNodeId} fromNodeId={activeStep?.fromNodeId} isPlaying={isPlaying} />
+        <GraphController zoomToNodeRef={zoomToNodeRef} selectedNodeId={selectedNodeId} viewMode={viewMode} />
         
         {/* Base Faint Background */}
         <Background color="rgba(255, 255, 255, 0.1)" gap={16} size={1} />
@@ -609,6 +923,92 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         </div>
 
       </ReactFlow>
+
+      {/* Flow Step Inspector Drawer */}
+      {viewMode === 'playground' && (
+        <FlowStepInspector
+          step={inspectedStep}
+          totalSteps={scenario?.steps?.length || 0}
+          onClose={() => setInspectedStep(null)}
+        />
+      )}
+
+      {/* Flow Playground Controller Bar & ONLY Structure Map Circle Button */}
+      {viewMode === 'playground' && (
+        <div
+          className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 w-[98%] max-w-5xl flex items-center justify-center gap-2.5 pointer-events-none transition-all ${
+            isExiting
+              ? "animate-out fade-out slide-out-to-bottom-10 duration-300 ease-in fill-mode-forwards"
+              : "animate-in fade-in slide-in-from-bottom-10 duration-500 ease-out"
+          }`}
+        >
+          <FlowPlaybackBar
+            scenario={scenario}
+            presets={presets}
+            onSelectScenario={handleSelectScenario}
+            onGenerateCustomFlow={handleGenerateCustomFlow}
+            isGenerating={isGenerating}
+            isPlaying={isPlaying}
+            onTogglePlay={() => setIsPlaying(!isPlaying)}
+            currentStepIndex={currentStepIndex}
+            onSeek={handleSeek}
+            speed={speed}
+            onChangeSpeed={setSpeed}
+            onReset={handleReset}
+          />
+
+          {/* ONLY Structure Map Switch Circle Button next to controller bar */}
+          {onTogglePlayground && (
+            <div className="pointer-events-auto shrink-0">
+              <button
+                onClick={() => {
+                  setIsExiting(true);
+                  setTimeout(() => {
+                    if (onTogglePlayground) onTogglePlayground();
+                    setIsExiting(false);
+                  }, 280);
+                }}
+                className="w-12 h-12 rounded-full bg-[#141419] border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.85)] hover:bg-white/10 hover:border-white/25 text-white/80 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer ring-1 ring-white/5"
+                title="Switch to Structure Map"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <rect x="4" y="4" width="6" height="6" rx="1.5" />
+                  <rect x="14" y="14" width="6" height="6" rx="1.5" />
+                  <path d="M7 10v4a2 2 0 0 0 2 2h5" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Structure Map Mode Switch Buttons at bottom center */}
+      {viewMode !== 'playground' && onTogglePlayground && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-50 bottom-6 sm:bottom-8 flex items-center gap-2.5 pointer-events-auto animate-in fade-in slide-in-from-bottom-6 duration-300">
+          {/* Left: Green Play Circle inside Dark Circle (triggers Playground) */}
+          <button
+            onClick={onTogglePlayground}
+            className="w-12 h-12 rounded-full bg-[#141419] border border-white/15 shadow-[0_10px_35px_rgba(0,0,0,0.85)] p-1.5 flex items-center justify-center transition-all hover:border-white/30 hover:scale-105 active:scale-95 cursor-pointer group"
+            title="Switch to Flow Playground"
+          >
+            <div className="w-full h-full rounded-full bg-emerald-500 group-hover:bg-emerald-400 flex items-center justify-center shadow-md transition-all">
+              <Play className="w-4 h-4 text-black fill-black ml-0.5" />
+            </div>
+          </button>
+
+          {/* Right: Structure Map Icon Circle (Active indicator) */}
+          <div
+            className="w-12 h-12 rounded-full bg-[#141419] border border-white/25 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex items-center justify-center text-white cursor-default"
+            title="Structure Map (Active)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <rect x="4" y="4" width="6" height="6" rx="1.5" />
+              <rect x="14" y="14" width="6" height="6" rx="1.5" />
+              <path d="M7 10v4a2 2 0 0 0 2 2h5" />
+            </svg>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

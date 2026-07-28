@@ -10,6 +10,7 @@ import { runMultiAgentOrchestration } from '../services/agents/Orchestrator.ts';
 import { getRepository } from '../store/repoRegistry.ts';
 import { runParser } from '../services/runParser.ts';
 import { generateAIContent } from '../services/aiProvider.ts';
+import { generateFlowScenario, generatePresetFlows } from '../services/flowEngine.ts';
 
 export async function explainNode(req: Request, res: Response): Promise<void> {
   try {
@@ -382,4 +383,67 @@ export async function handleOrchestrate(req: Request, res: Response): Promise<vo
   }
 }
 
+export async function generateFlowScenarioController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, prompt, graph: providedGraph } = req.body;
+    if (!prompt) {
+      res.status(400).json({ error: "prompt or scenario description is required to generate a flow trace" });
+      return;
+    }
+
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for flow generation, using empty graph");
+        }
+      }
+    }
+
+    if (!graph || !graph.nodes || graph.nodes.length === 0) {
+      res.status(400).json({ error: "Repository graph not found or empty. Please provide valid graph payload or analyze repository first." });
+      return;
+    }
+
+    const scenario = await generateFlowScenario(repoId || "repo", prompt, graph);
+    res.json({ success: true, scenario });
+  } catch (err: any) {
+    console.error("Error generating flow scenario:", err);
+    res.status(500).json({ error: err.message || "Failed to generate execution flow scenario" });
+  }
+}
+
+export async function listPresetFlowsController(req: Request, res: Response): Promise<void> {
+  try {
+    const { repoId, graph: providedGraph } = req.body;
+
+    let graph = providedGraph;
+    if (!graph && repoId) {
+      const repoPath = getRepository(repoId);
+      if (repoPath) {
+        try {
+          const parsed = await runParser(repoPath);
+          graph = parsed.graph;
+        } catch (err) {
+          console.warn("Could not re-parse repository for preset flows, using empty graph");
+        }
+      }
+    }
+
+    if (!graph || !graph.nodes || graph.nodes.length === 0) {
+      res.json({ success: true, presets: [] });
+      return;
+    }
+
+    const presets = await generatePresetFlows(repoId || "repo", graph);
+    res.json({ success: true, presets });
+  } catch (err: any) {
+    console.error("Error generating preset flows:", err);
+    res.status(500).json({ error: err.message || "Failed to generate preset flow scenarios" });
+  }
+}
 

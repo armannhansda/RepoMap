@@ -9,12 +9,13 @@ import Header from "@/components/Header";
 import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
-import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap, CheckCircle2, File as FileIcon } from "lucide-react";
+import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap, CheckCircle2, File as FileIcon, PlaySquare, Play } from "lucide-react";
 
 const RepoExplanationModal = dynamic(() => import("@/components/RepoExplanationModal"), { ssr: false });
 const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr: false });
 const HealthDashboardModal = dynamic(() => import("@/components/HealthDashboardModal"), { ssr: false });
 const MultiAgentOrchestratorModal = dynamic(() => import("@/components/MultiAgentOrchestratorModal"), { ssr: false });
+const PlaygroundCanvas = dynamic(() => import("@/components/PlaygroundCanvas"), { ssr: false });
 
 import { getRepository, saveRepository } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -180,6 +181,21 @@ export default function Home() {
   const [healthModalTab, setHealthModalTab] = useState<'health' | 'review' | 'git'>('health');
 
   const [orchestratorModalOpen, setOrchestratorModalOpen] = useState(false);
+  const [activeViewMode, setActiveViewMode] = useState<'map' | 'playground'>('map');
+
+  const handleTogglePlayground = useCallback(() => {
+    setActiveViewMode((prev) => {
+      const next = prev === 'playground' ? 'map' : 'playground';
+      if (next === 'playground') {
+        setIsExplainModalOpen(false);
+        setAiModalOpen(false);
+        setHealthModalOpen(false);
+        setOrchestratorModalOpen(false);
+        setSelectedNodeId(undefined);
+      }
+      return next;
+    });
+  }, []);
 
   const handleOpenAiTab = useCallback((tab: 'qa' | 'planner') => {
     if (aiModalOpen && aiModalTab === tab) {
@@ -189,6 +205,7 @@ export default function Home() {
     setIsExplainModalOpen(false);
     setOrchestratorModalOpen(false);
     setHealthModalOpen(false);
+    setActiveViewMode('map');
     setAiModalTab(tab);
     setAiModalOpen(true);
   }, [aiModalOpen, aiModalTab]);
@@ -201,6 +218,7 @@ export default function Home() {
     setIsExplainModalOpen(false);
     setAiModalOpen(false);
     setHealthModalOpen(false);
+    setActiveViewMode('map');
     setOrchestratorModalOpen(true);
   }, [orchestratorModalOpen]);
 
@@ -213,6 +231,7 @@ export default function Home() {
     setIsExplainModalOpen(false);
     setAiModalOpen(false);
     setOrchestratorModalOpen(false);
+    setActiveViewMode('map');
     if (tab) setHealthModalTab(tab);
     setHealthModalOpen(true);
   }, [healthModalOpen, healthModalTab]);
@@ -235,6 +254,7 @@ export default function Home() {
     setAiModalOpen(false);
     setOrchestratorModalOpen(false);
     setHealthModalOpen(false);
+    setActiveViewMode('map');
     setIsExplainModalOpen(true);
     if (repoExplanation) return;
     setIsExplaining(true);
@@ -474,26 +494,30 @@ export default function Home() {
           onOpenHealthTab={handleOpenHealthTab}
           onExportDiagram={handleGenerateDiagram}
           isGeneratingDiagram={isGeneratingDiagram}
+          onTogglePlayground={handleTogglePlayground}
+          activeViewMode={activeViewMode}
           activeFeatureTab={
-            isExplainModalOpen
-              ? 'explain'
-              : selectedNodeId === '__MEMORY__'
-                ? 'memory'
-                : aiModalOpen
-                  ? aiModalTab
-                  : orchestratorModalOpen
-                    ? 'engine'
-                    : healthModalOpen
-                      ? healthModalTab === 'health'
-                        ? 'health'
-                        : 'hotspots'
-                      : null
+            activeViewMode === 'playground'
+              ? 'playground'
+              : isExplainModalOpen
+                ? 'explain'
+                : selectedNodeId === '__MEMORY__'
+                  ? 'memory'
+                  : aiModalOpen
+                    ? aiModalTab
+                    : orchestratorModalOpen
+                      ? 'engine'
+                      : healthModalOpen
+                        ? healthModalTab === 'health'
+                          ? 'health'
+                          : 'hotspots'
+                        : null
           }
         />
       )}
 
       <div className="flex flex-1 overflow-hidden relative">
-        {graph && !isLeftSidebarCollapsed && (
+        {graph && activeViewMode !== 'playground' && !isLeftSidebarCollapsed && (
           <div style={{ width: leftWidth }} className="flex-shrink-0 relative max-w-[80vw] sm:max-w-[320px] lg:max-w-[420px] transition-all duration-300">
             <LeftSidebar
               nodes={graph.nodes}
@@ -510,7 +534,7 @@ export default function Home() {
         )}
 
         {/* Top-Left Minimized Explorer Button with File Icon */}
-        {graph && isLeftSidebarCollapsed && (
+        {graph && activeViewMode !== 'playground' && isLeftSidebarCollapsed && (
           <button
             onClick={() => setIsLeftSidebarCollapsed(false)}
             title="Open Project Explorer"
@@ -537,11 +561,14 @@ export default function Home() {
             />
           ) : (
             <>
+              {/* Unified Workspace Canvas keeping exact same graph layout & viewport across modes */}
               <RepoGraph
                 graph={graph}
-                repoId={repoId}
+                repoId={repoId || repoUrl}
                 selectedNodeId={selectedNodeId}
                 onNodeSelect={handleNodeSelect}
+                viewMode={activeViewMode}
+                onTogglePlayground={handleTogglePlayground}
               />
 
               {/* Feature Panels docked inside graph canvas under navbar */}

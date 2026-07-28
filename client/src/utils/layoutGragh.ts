@@ -14,8 +14,8 @@ export function getLayoutedElements(
   dagreGraph.setGraph({
     rankdir: "LR",
     align: "UL",
-    nodesep: isSubgraph ? 35 : 45,
-    ranksep: isSubgraph ? 60 : 85,
+    nodesep: isSubgraph ? 45 : 65,
+    ranksep: isSubgraph ? 85 : 130,
     ranker: nodes.length > 250 ? "longest-path" : "network-simplex",
   });
 
