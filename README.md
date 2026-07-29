@@ -1,10 +1,10 @@
-# 🗺️ RepoMap — Google Maps for Source Code
+# RepoMap — Google Maps for Source Code
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 <p align="center">
-  <strong><a href="https://repomap.armanx.online">🚀 Try RepoMap Live Here</a></strong>
+  <strong><a href="https://repomap.armanx.online">Try RepoMap Live Here</a></strong>
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 
 ---
 
-## 📸 Product Overview
+## Product Overview
 
 <p align="center">
   <img src="./client/public/screenshot.png" alt="RepoMap Spatial Graph" width="100%" />
@@ -32,33 +32,33 @@
 
 ---
 
-## ✨ The Problem vs. The RepoMap Solution
+## The Problem vs. The RepoMap Solution
 
-### 🧠 The Pain: Miller's Law & Tab Fatigue
+### The Pain: Miller's Law & Tab Fatigue
 Human working memory holds only ~7 items at a time. Tracing code logic across dozens of disconnected IDE tabs forces continuous cognitive re-indexing, spatial disorientation, and mental fatigue.
 
-### 🗺️ The Solution: Deterministic 2D Cartography
+### The Solution: Deterministic 2D Cartography
 Human spatial memory recalls physical coordinates and visual structures instinctively. **RepoMap** parses your repository's Abstract Syntax Tree (AST), extracts exact module dependencies and function definitions, and pins them onto a persistent, deterministic 2D grid.
 
-### ⚡ The Payoff: Flow State & AI Mastery
+### The Payoff: Flow State & AI Mastery
 Onboard in hours instead of weeks. Inspect live function call chains, trace execution pipelines, query multi-agent AI assistants, and export presentation-ready diagrams side-by-side without ever leaving your visual context.
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-- **🎯 AST-Verified Spatial Knowledge Graph**: Automatically parses AST imports, exports, and call hierarchies to generate an interactive, drag-and-zoom 2D node map.
-- **🖼️ High-Density Cardless Editorial UI**: Designed with modern monochrome typography, sleek glassmorphic aesthetics, and dynamic scroll animations for maximum spatial clarity.
-- **🤖 Multi-Agent AI Architectural Assistant**: Deeply integrated with **Google Gemini 2.5 Flash** (and fallback **Llama 3 via Groq**) to generate instant high-level summaries, explain complex functions, and answer architectural questions.
-- **🔍 Split-Screen Code & Call Tracing**: Click any node or function to inspect source code, verify callers/callees (`[Entry] ──► [Auth] ──► [DB]`), and explore the module connections.
-- **⚡ Instant 0-Second Setup**: Paste any public GitHub repository link (`owner/repository` or full URL) with zero backend indexing or manifest files required.
-- **📊 Draw.io XML Export**: Export clean, presentation-ready architectural blueprints directly from your browser to Draw.io (`.drawio` / XML).
-- **💾 Offline Smart Caching**: Repository topologies, parsed AST graphs, and opened files are cached locally inside `IndexedDB` for lightning-fast re-navigation.
+- **AST-Verified Spatial Knowledge Graph**: Automatically parses AST imports, exports, and call hierarchies to generate an interactive, drag-and-zoom 2D node map.
+- **High-Density Cardless Editorial UI**: Designed with modern monochrome typography, sleek glassmorphic aesthetics, and dynamic scroll animations for maximum spatial clarity.
+- **Multi-Agent AI Architectural Assistant**: Deeply integrated with **Google Gemini 2.5 Flash** (and fallback **Llama 3 via Groq**) to generate instant high-level summaries, explain complex functions, and answer architectural questions.
+- **Split-Screen Code & Call Tracing**: Click any node or function to inspect source code, verify callers/callees (`[Entry] ──► [Auth] ──► [DB]`), and explore the module connections.
+- **Instant 0-Second Setup**: Paste any public GitHub repository link (`owner/repository` or full URL) with zero backend indexing or manifest files required.
+- **Draw.io XML Export**: Export clean, presentation-ready architectural blueprints directly from your browser to Draw.io (`.drawio` / XML).
+- **Offline Smart Caching**: Repository topologies, parsed AST graphs, and opened files are cached locally inside `IndexedDB` for lightning-fast re-navigation.
 
 ---
 
 
-## 👥 Tailored Superpowers for Every Role
+## Tailored Superpowers for Every Role
 
 | Persona | Primary Goal | How RepoMap Supercharges Workflow |
 | :--- | :--- | :--- |
@@ -69,7 +69,7 @@ Onboard in hours instead of weeks. Inspect live function call chains, trace exec
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Frontend (`client/`)
 - **Core Framework**: Next.js 15 / React 19 (`App Router`)
@@ -86,7 +86,7 @@ Onboard in hours instead of weeks. Inspect live function call chains, trace exec
 
 ---
 
-## 🚀 Getting Started Locally
+## Getting Started Locally
 
 ### Prerequisites
 - **Node.js** (v18 or higher)
@@ -168,7 +168,7 @@ If you prefer using Docker, you can spin up the entire full-stack environment wi
 
 ---
 
-## 📖 Core Workflow & Architecture Guide
+## Core Workflow & Architecture Guide
 
 RepoMap is designed to mimic the cognitive model of a seasoned architect exploring a new codebase. Here is how the system processes your repositories:
 
@@ -181,12 +181,12 @@ RepoMap is designed to mimic the cognitive model of a seasoned architect explori
 
 ---
 
-## 🤝 Contribute
+## Contribute
 
 RepoMap is open source and we welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) to get started.
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
