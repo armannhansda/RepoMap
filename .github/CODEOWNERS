@@ -1,0 +1,12 @@
+# This is a list of CODEOWNERS for the repository.
+# Lines starting with '#' are comments.
+# Each line is a file pattern followed by one or more owners.
+
+# These owners will be the default owners for everything in the repo.
+*       @armannhansda
+
+# Order is important; the last matching pattern takes the most precedence.
+
+# Build/config files
+/client/package.json    @armannhansda
+/server/package.json    @armannhansda
