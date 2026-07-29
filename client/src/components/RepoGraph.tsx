@@ -10,7 +10,7 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
 import { getFileContent, explainNode } from "@/services/api";
 import ReactMarkdown from 'react-markdown';
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check } from "lucide-react";
 
 const initialNodeTypes = {
   custom: CustomNode,
@@ -144,6 +144,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [isExplaining, setIsExplaining] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isPanelDragging, setIsPanelDragging] = useState(false);
@@ -216,6 +217,17 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
       setIsExplaining(prev => ({ ...prev, [node.id]: false }));
     }
   };
+  const handleCopyExplanation = async (nodeId: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(nodeId);
+      setTimeout(() => {
+        setCopiedId((prev) => (prev === nodeId ? null : prev));
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to copy explanation:", err);
+    }
+      };
 
   useEffect(() => {
     if (!hoveredNode) {
@@ -531,7 +543,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
                 <span className="text-[10px] text-text-muted uppercase tracking-wider flex items-center gap-1">
                   <Sparkles className="w-2.5 h-2.5 text-brand" /> AI Explanation
                 </span>
-                {!aiExplanations[hoveredNode.id] && (
+                {!aiExplanations[hoveredNode.id] ? (
                   <button 
                     onClick={() => handleExplainNode(hoveredNode, hoveredNodeContent)} 
                     disabled={isExplaining[hoveredNode.id]}
@@ -540,7 +552,15 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
                     {isExplaining[hoveredNode.id] ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Sparkles className="w-2 h-2" />}
                     {isExplaining[hoveredNode.id] ? "Loading..." : "Explain"}
                   </button>
-                )}
+                ) : (
+                  <button
+                    onClick={() => handleCopyExplanation(hoveredNode.id, aiExplanations[hoveredNode.id])}
+                    className="bg-white/10 hover:bg-white/20 border border-white/20 p-1 rounded transition-all duration-300 cursor-pointer"
+                    title="Copy explanation"
+                  >
+                    {copiedId === hoveredNode.id ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                  </button> 
+                )}              
               </div>
               
               {aiExplanations[hoveredNode.id] ? (
