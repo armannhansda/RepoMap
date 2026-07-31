@@ -1,19 +1,26 @@
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/+$/, "");
 
-export async function analyzeRepo(repoUrl:string) {
-  const response = await fetch (
+export async function analyzeRepo(repoUrl: string) {
+  const response = await fetch(
     `${API_BASE_URL}/api/repo/analyze`,
     {
-      method:"POST",
+      method: "POST",
       headers: {
         "Content-type": "application/json",
       },
-      body:JSON.stringify({
+      body: JSON.stringify({
         repoUrl,
       })
     }
-  )
-  return response.json()
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || "Failed to analyze repository.");
+  }
+
+  return data;
 }
 
 export async function getFileContent(repoId:string, filePath:string) {

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import ClarityProvider from "@/components/ClarityProvider";
 import PostHogProvider from "@/components/PostHogProvider";
+import { Toaster } from "sonner"
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
         <ClarityProvider />
         <PostHogProvider />
         <Analytics />
+        <Toaster theme="dark" position="top-right" richColors />
       </body>
     </html>
   );
