@@ -10,6 +10,7 @@ import LeftSidebar from "@/components/LeftSidebar";
 import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
 import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap, CheckCircle2, File as FileIcon } from "lucide-react";
+import { toast } from "sonner";
 
 const RepoExplanationModal = dynamic(() => import("@/components/RepoExplanationModal"), { ssr: false });
 const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr: false });
@@ -371,8 +372,10 @@ export default function Home() {
       setGraph(result.graph);
       setRepoId(result.repoId); // which is now also repoUrl
       setSelectedNodeId(undefined);
-    } catch (error) {
+      toast.success("Repository loaded successfully!");
+    } catch (error: any) {
       console.error(error);
+      toast.error(error?.message || "Could not find or analyze this repository.");
     } finally {
       setLoading(false);
     }
