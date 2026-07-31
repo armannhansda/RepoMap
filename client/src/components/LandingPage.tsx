@@ -75,15 +75,14 @@ function ScrollReveal({
 
 function SectionConnector({ number, label }: { number: string; label: string }) {
   return (
-    <ScrollReveal direction="zoom" className="w-full flex flex-col items-center justify-center my-6 sm:my-8 relative z-10 select-none">
-      <div className="w-px h-6 sm:h-8 bg-gradient-to-b from-transparent via-white/20 to-white/40" />
-      <div className="flex items-center gap-3 px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-black/90 border border-white/15 shadow-[0_0_40px_rgba(255,255,255,0.06)] text-xs font-mono text-gray-300 backdrop-blur-xl hover:border-white/30 transition-colors my-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-        <span className="text-white font-bold tracking-wider">{number}</span>
+    <ScrollReveal direction="fade" className="w-full flex flex-col items-center justify-center my-12 sm:my-16 relative z-10 select-none">
+      <div className="w-px h-8 sm:h-12 bg-gradient-to-b from-transparent via-white/10 to-white/20" />
+      <div className="flex items-center gap-3 px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-transparent border border-white/5 text-xs font-mono text-gray-400 my-2">
+        <span className="text-gray-300 font-bold tracking-wider">{number}</span>
         <span className="text-gray-600">/</span>
-        <span className="uppercase tracking-widest text-gray-200 font-semibold">{label}</span>
+        <span className="uppercase tracking-widest text-gray-400">{label}</span>
       </div>
-      <div className="w-px h-6 sm:h-8 bg-gradient-to-b from-white/40 via-white/20 to-transparent" />
+      <div className="w-px h-8 sm:h-12 bg-gradient-to-b from-white/20 via-white/10 to-transparent" />
     </ScrollReveal>
   );
 }
@@ -108,6 +107,76 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
   const graphContainerRef = React.useRef<HTMLDivElement>(null);
   const [activePersonaTab, setActivePersonaTab] = React.useState(0);
   const [activeStepTab, setActiveStepTab] = React.useState(0);
+  const stepRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const personaRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+  const personaScrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.getAttribute('data-index'));
+            setActiveStepTab(index);
+          }
+        });
+      },
+      { rootMargin: '-40% 0px -40% 0px', threshold: 0.1 }
+    );
+    const pObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.getAttribute('data-persona-index'));
+            setActivePersonaTab(index);
+          }
+        });
+      },
+      { root: personaScrollContainerRef.current, threshold: 0.5 }
+    );
+
+    const currentRefs = stepRefs.current;
+    currentRefs.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+    
+    const currentPRefs = personaRefs.current;
+    currentPRefs.forEach((ref) => {
+      if (ref) pObserver.observe(ref);
+    });
+
+    return () => {
+      currentRefs.forEach((ref) => {
+        if (ref) observer.unobserve(ref);
+      });
+      currentPRefs.forEach((ref) => {
+        if (ref) pObserver.unobserve(ref);
+      });
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const container = personaScrollContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      const isAtStart = container.scrollLeft === 0;
+      const isAtEnd = Math.abs(container.scrollWidth - container.clientWidth - container.scrollLeft) < 2;
+
+      if (e.deltaY > 0 && !isAtEnd) {
+        container.scrollLeft += e.deltaY;
+        e.preventDefault();
+      } else if (e.deltaY < 0 && !isAtStart) {
+        container.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const personasData = [
     {
@@ -254,7 +323,7 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
 
         {/* Highlighted Dot Grid following mouse */}
         <div
-          className="absolute inset-0 transition-opacity duration-300"
+          className="absolute inset-0 transition-opacity duration-500"
           style={{
             backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
             backgroundSize: '32px 32px',
@@ -267,24 +336,24 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
       </div>
 
       {/* Main Content (Hero + Search + Quick Try + Hook Strip) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 pt-10 sm:pt-14 lg:pt-16 pb-8 sm:pb-12 mx-auto flex flex-col items-center z-10">
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 pt-16 sm:pt-20 lg:pt-24 pb-12 sm:pb-16 mx-auto flex flex-col items-center z-10">
 
         {/* Branding */}
-        <div className="flex items-center gap-2.5 font-bold text-base sm:text-lg text-white mb-6 sm:mb-8 lg:mb-10">
-          <Image src="/icon.svg" alt="RepoMap Logo" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 opacity-90" />
+        <div className="flex items-center gap-2.5 font-bold text-base sm:text-lg text-white mb-8 sm:mb-10 lg:mb-12">
+          <Image src="/icon.svg" alt="RepoMap Logo" width={28} height={28} className="w-6 h-6 sm:w-7 sm:h-7 opacity-90 grayscale" />
           <span className="text-lg sm:text-xl tracking-wider font-mono">RepoMap</span>
         </div>
 
         {/* Hero */}
-        <div className="text-center mb-8 sm:mb-10 max-w-[1400px] mx-auto relative px-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono tracking-wide text-gray-300 mb-4 shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+        <div className="text-center mb-10 sm:mb-12 max-w-[1400px] mx-auto relative px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 text-[11px] sm:text-xs font-mono tracking-wide text-gray-400 mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-gray-400" />
             <span>AST-Driven Interactive Knowledge Graph</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight mb-5 sm:mb-6 text-white drop-shadow-2xl">
-            Google Maps for <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500">Source Code.</span>
+          <h1 className="text-3xl sm:text-5xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight mb-6 sm:mb-8 text-white">
+            Google Maps for <span className="text-gray-400 font-light">Source Code.</span>
           </h1>
-          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-400 max-w-2xl xl:max-w-3xl mx-auto font-normal leading-relaxed drop-shadow-md">
+          <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-400 max-w-2xl xl:max-w-3xl mx-auto font-normal leading-relaxed">
             Turn dense repositories into explorable 2D spatial maps. Zoom effortlessly from macro architecture down to AST function calls with zero configuration.
           </p>
         </div>
@@ -350,62 +419,68 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
           </button>
         </div>
 
-        {/* 3-Second Psychology & Value Hook Strip (Open Cardless Editorial Layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 w-full max-w-[1500px] mx-auto mb-10 sm:mb-14 z-20 pt-6 border-t border-white/10">
-          <div className="border-l-2 border-red-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
+        {/* Glassmorphism Hook Strip */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 w-full max-w-[1500px] mx-auto mb-16 sm:mb-20 z-20 pt-10">
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between group hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-red-400 font-bold">
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-white/50 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
                   THE PAIN // MILLER&apos;S LAW
                 </span>
-                <Compass className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Compass className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                </div>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Linear Tab Disorientation</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3">Linear Tab Disorientation</h3>
               <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
                 Human working memory holds only ~7 items. Tracing code across dozens of open tabs forces continuous cognitive re-indexing and mental fatigue.
               </p>
             </div>
-            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
-              <span>Cognitive Load: Overwhelmed</span>
-              <span className="text-red-400 font-bold">45+ Tabs</span>
+            <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
+              <span>Cognitive Load</span>
+              <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded">45+ Tabs</span>
             </div>
           </div>
 
-          <div className="border-l-2 border-blue-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between group hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-blue-400 font-bold">
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-white/50 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
                   THE SOLUTION // SPATIAL GRID
                 </span>
-                <Map className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Map className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                </div>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Deterministic 2D Cartography</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3">Deterministic 2D Cartography</h3>
               <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
                 Human spatial memory recalls physical coordinates effortlessly. Mapping AST modules onto a persistent 2D grid makes navigation instinctive.
               </p>
             </div>
-            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
-              <span>Spatial Accuracy: 100%</span>
-              <span className="text-blue-400 font-bold">Fixed Layout</span>
+            <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
+              <span>Spatial Accuracy</span>
+              <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded">Fixed Layout</span>
             </div>
           </div>
 
-          <div className="border-l-2 border-emerald-500/30 pl-5 sm:pl-6 flex flex-col justify-between group">
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col justify-between group hover:bg-white/[0.05] hover:border-white/20 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-widest text-white/50 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
                   THE PAYOFF // FLOW STATE
                 </span>
-                <Zap className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                  <Zap className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                </div>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-white mb-2">Split-Screen Code & AI Mastery</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3">Split-Screen Code Mastery</h3>
               <p className="text-xs sm:text-sm text-gray-400 leading-relaxed font-sans">
                 Onboard in hours instead of weeks. Inspect function call chains and query multi-agent AI side-by-side without leaving your visual context.
               </p>
             </div>
-            <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-500">
-              <span>Context Switching: Zero</span>
-              <span className="text-emerald-400 font-bold">0 Tabs</span>
+            <div className="mt-8 pt-5 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
+              <span>Context Switching</span>
+              <span className="text-white font-semibold bg-white/10 px-2 py-0.5 rounded">0 Tabs</span>
             </div>
           </div>
         </div>
@@ -510,9 +585,97 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
 
 
 
-      <SectionConnector number="01" label="Why & All About RepoMap" />
+      <SectionConnector number="01" label="Interactive Step-By-Step Guide" />
 
-      {/* Section 1: Why RepoMap & All About The Tool */}
+      {/* Section 1: Step-by-Step Guide (Cardless Split Display & Stepper) */}
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-10 sm:pb-16">
+        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
+          {/* Sticky Section Title */}
+          <div className="sticky top-0 z-50 bg-[#000000]/90 backdrop-blur-xl pt-6 sm:pt-8 pb-4 sm:pb-6 mb-8 sm:mb-12 border-b border-white/10 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>Step-by-Step Guide</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
+              How To Use RepoMap: From GitHub Link to AST Mastery
+            </h2>
+          </div>
+
+          {/* Scroll-Spy Sticky Split Layout */}
+          <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start relative pb-12">
+
+            {/* Left Column: Scrollable Steps */}
+            <div className="lg:w-5/12 w-full flex flex-col pt-8 space-y-[35vh] pb-[30vh]">
+              {stepData.map((step, idx) => (
+                <div
+                  key={step.step}
+                  ref={(el) => { stepRefs.current[idx] = el; }}
+                  data-index={idx}
+                  className={`space-y-6 transition-all duration-700 ease-out transform ${activeStepTab === idx
+                      ? 'opacity-100 translate-y-0 scale-100'
+                      : 'opacity-20 translate-y-8 scale-95'
+                    }`}
+                >
+                  <div className="flex items-center gap-2.5 text-xs font-mono text-gray-500">
+                    <span className="w-2 h-2 rounded-full bg-gray-400" />
+                    <span className="text-gray-300 font-bold">STEP 0{step.step}</span>
+                    <span>//</span>
+                    <span>{step.mockupHeader}</span>
+                  </div>
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
+                    {step.title}
+                  </h3>
+                  <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Column: Sticky Interactive Terminal Mockup */}
+            <div className="lg:w-7/12 w-full lg:sticky lg:top-56 bg-black border border-white/10 rounded-2xl overflow-hidden shadow-2xl font-mono transition-all duration-500">
+              <div className="bg-white/5 px-4 py-3 flex items-center justify-between border-b border-white/10">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+                </div>
+                <div className="text-[10px] text-gray-400 flex-1 text-center font-sans tracking-wide">
+                  Live Simulation Console
+                </div>
+                <div className="text-[10px] text-white bg-white/10 px-2 py-0.5 rounded border border-white/10 transition-all duration-300">
+                  {stepData[activeStepTab].mockupStatus}
+                </div>
+              </div>
+
+              <div className="p-6 h-[220px] flex flex-col justify-center bg-gradient-to-b from-white/[0.02] to-transparent relative overflow-hidden">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+
+                <div className="relative z-10 flex flex-col gap-4">
+                  <div className="text-emerald-400 font-mono text-sm border-l-2 border-emerald-500/50 pl-4 py-2 bg-emerald-500/5 rounded-r-lg flex items-center justify-between shadow-inner transition-all duration-300">
+                    <div>
+                      <span className="text-gray-500 mr-2">$</span>
+                      {stepData[activeStepTab].mockupCommand}
+                    </div>
+                    <span className="text-[10px] sm:text-xs bg-white/5 text-gray-400 px-2.5 py-1 rounded border border-white/10">Active Action</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-white/5 text-[11px] text-gray-500 font-mono flex justify-between bg-black/40">
+                <span>Engine status: <strong className="text-emerald-400">Ready</strong></span>
+                <span>Spatial layout: <strong className="text-gray-300">Deterministic</strong></span>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
+      </div>
+
+
+
+      <SectionConnector number="02" label="Why & All About RepoMap" />
+
+      {/* Section 2: Why RepoMap & All About The Tool */}
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
         <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-6 sm:mb-8 gap-4 sm:gap-6">
@@ -530,113 +693,123 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             </div>
           </div>
 
-          {/* Split-Screen Terminal / IDE Comparison (Open Cardless Side-by-Side Layout) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 mb-10 sm:mb-12 items-start border-y border-white/15 py-6 sm:py-8">
+          {/* Split-Screen Terminal / IDE Comparison (Window Mockup Layout) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 mb-12 sm:mb-16 items-start py-8 sm:py-10">
             {/* Before: Traditional Browsing */}
-            <div className="font-mono space-y-6">
-              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                  <span className="text-gray-300 font-bold font-sans">VS Code — Linear Directory Tree</span>
+            <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.2)] font-mono flex flex-col h-full">
+              {/* Fake Window Header */}
+              <div className="bg-white/5 px-4 py-3 flex items-center justify-between border-b border-white/10">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
                 </div>
-                <span className="text-red-400 font-bold bg-red-500/10 px-2.5 py-1 rounded border border-red-500/20 text-[11px]">45 Tabs Open</span>
+                <div className="text-[11px] text-gray-400 font-sans tracking-wide">VS Code — Linear Directory Tree</div>
+                <div className="text-[11px] text-white bg-white/10 px-2 py-0.5 rounded border border-white/10">45 Tabs Open</div>
               </div>
 
-              <div className="space-y-3 text-xs sm:text-sm text-gray-400 pl-2">
-                <div className="text-gray-500">├── controllers/</div>
-                <div className="pl-4 text-gray-300 flex items-center justify-between">
-                  <span>├── UserController.ts</span>
-                  <span className="text-red-400 text-[10px] bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">! Memory limit</span>
+              <div className="p-6 space-y-6 flex-1 flex flex-col">
+                <div className="space-y-3 text-xs sm:text-sm text-gray-400">
+                  <div className="text-gray-500">├── controllers/</div>
+                  <div className="pl-4 text-gray-300 flex items-center justify-between bg-white/[0.02] p-2 rounded">
+                    <span>├── UserController.ts</span>
+                    <span className="text-red-400/80 text-[10px] bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20">! Memory limit</span>
+                  </div>
+                  <div className="pl-4 text-gray-300 flex items-center justify-between bg-white/[0.02] p-2 rounded">
+                    <span>├── AuthController.ts</span>
+                    <span className="text-yellow-400/80 text-[10px] bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-400/20">? Where called?</span>
+                  </div>
+                  <div className="text-gray-500">├── services/</div>
+                  <div className="pl-4 text-gray-300 flex items-center justify-between bg-white/[0.02] p-2 rounded">
+                    <span>├── BillingService.ts</span>
+                    <span className="text-red-400/80 text-[10px] bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20">! Circular import</span>
+                  </div>
+                  <div className="text-gray-500">└── models/</div>
+                  <div className="pl-4 text-gray-500">└── UserSchema.prisma</div>
                 </div>
-                <div className="pl-4 text-gray-300 flex items-center justify-between">
-                  <span>├── AuthController.ts</span>
-                  <span className="text-amber-400 text-[10px] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">? Where called?</span>
-                </div>
-                <div className="text-gray-500">├── services/</div>
-                <div className="pl-4 text-gray-300 flex items-center justify-between">
-                  <span>├── BillingService.ts</span>
-                  <span className="text-red-400 text-[10px] bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">! Circular import</span>
-                </div>
-                <div className="text-gray-500">└── models/</div>
-                <div className="pl-4 text-gray-500">└── UserSchema.prisma</div>
-              </div>
 
-              <div className="pt-4 border-t border-white/10 text-xs text-gray-400 leading-relaxed font-sans">
-                <strong className="text-white">The Problem:</strong> Linear reading forces your working memory to hold thousands of lines. Tracing an API call requires jumping across dozens of disconnected tabs, causing severe disorientation.
-              </div>
+                <div className="mt-auto pt-6 border-t border-white/10 text-xs text-gray-400 leading-relaxed font-sans">
+                  <strong className="text-white">The Problem:</strong> Linear reading forces your working memory to hold thousands of lines. Tracing an API call requires jumping across dozens of disconnected tabs, causing severe disorientation.
+                </div>
 
-              <div className="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-wider font-mono pt-2">
-                <span>Cognitive Load: <strong className="text-red-400">Critical</strong></span>
-                <span>Context: <strong className="text-red-400">Lost</strong></span>
+                <div className="flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-wider font-mono pt-2">
+                  <span>Cognitive Load: <strong className="text-red-400/80">Critical</strong></span>
+                  <span>Context: <strong className="text-red-400/80">Lost</strong></span>
+                </div>
               </div>
             </div>
 
             {/* After: RepoMap Spatial Graph */}
-            <div className="font-mono space-y-6">
-              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                  <span className="text-white font-bold font-sans">RepoMap — Spatial 2D Knowledge Graph</span>
+            <div className="bg-blue-900/[0.05] backdrop-blur-xl border border-blue-400/20 rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(59,130,246,0.1)] font-mono flex flex-col h-full">
+              {/* Fake Window Header */}
+              <div className="bg-blue-900/20 px-4 py-3 flex items-center justify-between border-b border-blue-400/20">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
                 </div>
-                <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 text-[11px]">0 Tab Switching</span>
+                <div className="text-[11px] text-blue-200 font-sans tracking-wide font-medium">RepoMap — Spatial 2D Knowledge Graph</div>
+                <div className="text-[11px] text-white bg-blue-500/20 px-2 py-0.5 rounded border border-blue-400/30 font-medium">0 Tab Switching</div>
               </div>
 
-              <div className="text-xs sm:text-sm space-y-3 pl-2">
-                <div className="flex items-center justify-between text-white bg-white/[0.03] p-3 rounded-xl border border-white/15">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <strong className="text-white">[Entry]</strong> routes/users.ts
-                  </span>
-                  <span className="text-[10px] text-gray-300 bg-white/10 border border-white/20 px-2 py-0.5 rounded font-mono">Line 42</span>
+              <div className="p-6 space-y-6 flex-1 flex flex-col">
+                <div className="text-xs sm:text-sm space-y-4">
+                  <div className="flex items-center justify-between text-white bg-white/[0.05] p-3.5 rounded-xl border border-white/10 shadow-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                      <strong className="text-white font-sans">[Entry]</strong> routes/users.ts
+                    </span>
+                    <span className="text-[10px] text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded font-mono">Line 42</span>
+                  </div>
+                  <div className="flex items-center justify-center text-blue-300/50 text-[11px] font-mono">
+                    ├── (AST Verified Call) ──►
+                  </div>
+                  <div className="flex items-center justify-between text-white bg-blue-500/10 p-3.5 rounded-xl border border-blue-400/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <strong className="text-white font-sans">[Auth]</strong> lib/jwt.ts : verifySession()
+                    </span>
+                    <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">14 Callers</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center text-gray-500 text-[11px] font-mono">
-                  ├── (AST Verified Call) ──►
-                </div>
-                <div className="flex items-center justify-between text-white bg-white/[0.03] p-3 rounded-xl border border-white/15">
-                  <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                    <strong className="text-white">[Auth]</strong> lib/jwt.ts : verifySession()
-                  </span>
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">14 Callers</span>
-                </div>
-              </div>
 
-              <div className="pt-4 border-t border-white/10 text-xs text-gray-300 leading-relaxed font-sans">
-                <strong className="text-white">The Solution:</strong> RepoMap extracts exact Abstract Syntax Tree (AST) imports right in your browser and maps them onto a deterministic spatial grid. You instantly see how modules connect without losing context.
-              </div>
+                <div className="mt-auto pt-6 border-t border-white/10 text-xs text-blue-100/70 leading-relaxed font-sans">
+                  <strong className="text-white">The Solution:</strong> RepoMap extracts exact Abstract Syntax Tree (AST) imports right in your browser and maps them onto a deterministic spatial grid. You instantly see how modules connect without losing context.
+                </div>
 
-              <div className="flex items-center justify-between text-[11px] text-gray-400 uppercase tracking-wider font-mono pt-2">
-                <span>Cognitive Load: <strong className="text-emerald-400">Zero</strong></span>
-                <span>Spatial Clarity: <strong className="text-emerald-400">100%</strong></span>
+                <div className="flex items-center justify-between text-[11px] text-blue-200/50 uppercase tracking-wider font-mono pt-2">
+                  <span>Cognitive Load: <strong className="text-emerald-400">Zero</strong></span>
+                  <span>Spatial Clarity: <strong className="text-emerald-400">100%</strong></span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Floating HUD Strip (Open Typographic Columns - Zero Cards) */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 pt-4">
-            <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">100% In-Browser</div>
-              <div className="text-xs text-gray-400 mt-1 font-sans">Zero Backend Indexing or Cloning Required</div>
+          {/* Floating Stats / HUD Strip (Glassmorphism Cards) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-4">
+            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/20 transition-all">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight font-mono mb-2">100% In-Browser</div>
+              <div className="text-xs text-gray-400 font-sans leading-relaxed">Zero Backend Indexing or Cloning Required</div>
             </div>
-            <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">0s Setup Time</div>
-              <div className="text-xs text-gray-400 mt-1 font-sans">Paste Any Standard GitHub Repository Link</div>
+            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/20 transition-all">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight font-mono mb-2">0s Setup Time</div>
+              <div className="text-xs text-gray-400 font-sans leading-relaxed">Paste Any Standard GitHub Repository Link</div>
             </div>
-            <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">AST + AI Linked</div>
-              <div className="text-xs text-gray-400 mt-1 font-sans">Multi-Agent Orchestrator & Q&A Assistant</div>
+            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/20 transition-all">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight font-mono mb-2">AST + AI Linked</div>
+              <div className="text-xs text-gray-400 font-sans leading-relaxed">Multi-Agent Orchestrator & Q&A Assistant</div>
             </div>
-            <div className="border-l-2 border-white/20 pl-4 sm:pl-6">
-              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight font-mono">Draw.io XML</div>
-              <div className="text-xs text-gray-400 mt-1 font-sans">Export Presentation Architecture Diagrams</div>
+            <div className="bg-white/[0.02] backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:bg-white/[0.04] hover:border-white/20 transition-all">
+              <div className="text-xl sm:text-2xl font-black text-white tracking-tight font-mono mb-2">Draw.io XML</div>
+              <div className="text-xs text-gray-400 font-sans leading-relaxed">Export Presentation Architecture Diagrams</div>
             </div>
           </div>
         </ScrollReveal>
       </div>
 
-      <SectionConnector number="02" label="Target Audience & Personas" />
+      <SectionConnector number="03" label="Target Audience & Personas" />
 
-      {/* Section 2: Target Audience & Personas (Cardless Split Display) */}
+      {/* Section 3: Target Audience & Personas (Cardless Split Display) */}
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
         <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
           <div className=" md:flex-row items-start md:items-end justify-between sm:mb-8 gap-2 sm:gap-6">
@@ -655,8 +828,11 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
               {personasData.map((persona, index) => (
                 <button
                   key={persona.role}
-                  onClick={() => setActivePersonaTab(index)}
-                  className={`px-3.5 sm:px-4 lg:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activePersonaTab === index
+                  onClick={() => {
+                    setActivePersonaTab(index);
+                    personaRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                  }}
+                  className={`snap-center shrink-0 px-3.5 sm:px-4 lg:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activePersonaTab === index
                     ? 'bg-white text-black shadow-xl scale-[1.02]'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
@@ -668,72 +844,85 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             </div>
           </div>
 
-          {/* Cardless Open Split HUD Display */}
-          <div key={activePersonaTab} className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start animate-in fade-in duration-300 pt-1 ">
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-white shrink-0">
-                  {personasData[activePersonaTab].icon}
+          {/* Glassmorphism Split HUD Display - Horizontal Scroll */}
+          <div ref={personaScrollContainerRef} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden gap-8 lg:gap-10 pb-8 pt-6 w-full relative">
+            {personasData.map((persona, index) => (
+              <div 
+                key={persona.role} 
+                ref={(el) => { personaRefs.current[index] = el; }}
+                data-persona-index={index}
+                className={`w-full shrink-0 snap-center grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start transition-opacity duration-500 ${activePersonaTab === index ? 'opacity-100' : 'opacity-40'}`}
+              >
+                <div className="lg:col-span-6 space-y-8 bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-8 sm:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+                      {persona.icon}
+                    </div>
+                    <div>
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 font-mono">
+                        {persona.badge}
+                      </span>
+                      <div className="text-base sm:text-lg lg:text-xl font-bold text-white mt-2">{persona.role}</div>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                    {persona.headline}
+                  </h3>
+                  <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
+                    {persona.description}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-6 pt-6 text-xs sm:text-sm font-mono text-gray-400 border-t border-white/5">
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      Instant AST Mapping
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      Zero Configuration
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      Draw.io XML Ready
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/5 border border-white/15 text-white font-mono">
-                    {personasData[activePersonaTab].badge}
-                  </span>
-                  <div className="text-base sm:text-lg lg:text-xl font-bold text-white mt-1">{personasData[activePersonaTab].role}</div>
+
+                {/* Right Column: Code Trace Window Mockup */}
+                <div className="lg:col-span-6 bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 font-mono h-full flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 text-gray-300 font-bold font-sans">
+                      <div className="flex items-center gap-1.5 mr-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                      </div>
+                      <span>{persona.previewTitle}</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-300 bg-white/5 px-2.5 py-1 rounded border border-white/10 font-mono">
+                      {persona.previewTag}
+                    </span>
+                  </div>
+
+                  <div className="text-xs sm:text-sm text-gray-300 leading-relaxed break-all font-mono py-6 flex-1 bg-black/40 mt-4 rounded-xl p-4 border border-white/5 overflow-auto">
+                    {persona.previewCode}
+                  </div>
+
+                  <div className="pt-6 mt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-500 font-mono">
+                    <span>Status: <strong className="text-gray-300">Active Engine Trace</strong></span>
+                    <span>Spatial Coordinates: <strong className="text-gray-300">Pinned</strong></span>
+                  </div>
                 </div>
               </div>
-
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
-                {personasData[activePersonaTab].headline}
-              </h3>
-              <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
-                {personasData[activePersonaTab].description}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-6 pt-4 text-xs sm:text-sm font-mono text-gray-300 border-t border-white/10">
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Instant AST Mapping
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  Zero Configuration
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                  Draw.io XML Ready
-                </span>
-              </div>
-            </div>
-
-            {/* Right Column: Borderless Code Trace over #000000 */}
-            <div className="lg:col-span-6 font-mono border-l lg:border-l-2 border-white/15 pl-0 lg:pl-10 space-y-5 pt-4 lg:pt-0">
-              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
-                <div className="flex items-center gap-2 text-white font-bold font-sans">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{personasData[activePersonaTab].previewTitle}</span>
-                </div>
-                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20 font-mono">
-                  {personasData[activePersonaTab].previewTag}
-                </span>
-              </div>
-
-              <div className="text-xs sm:text-sm text-gray-200 leading-relaxed break-all font-mono py-2">
-                {personasData[activePersonaTab].previewCode}
-              </div>
-
-              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-gray-500 font-mono">
-                <span>Status: <strong className="text-white">Active Engine Trace</strong></span>
-                <span>Spatial Coordinates: <strong className="text-white">Pinned</strong></span>
-              </div>
-            </div>
+            ))}
           </div>
         </ScrollReveal>
       </div>
 
-      <SectionConnector number="03" label="Core Workflow Mechanics" />
+      <SectionConnector number="04" label="Core Workflow Mechanics" />
 
-      {/* Section 3: Developer Workflow Mechanics (Cardless Staggered Editorial Grid) */}
+      {/* Section 4: Developer Workflow Mechanics (Cardless Staggered Editorial Grid) */}
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-8 sm:pb-12">
         <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
           <div className="mb-8 sm:mb-10 text-left">
@@ -749,14 +938,14 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-14 items-start border-t border-white/15 pt-6 sm:pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-start pt-8 sm:pt-10">
             {workflowData.map((pillar, idx) => (
-              <ScrollReveal key={pillar.title} direction="up" delay={100 + idx * 150} className="space-y-5 border-l-2 border-white/20 pl-6 sm:pl-8">
-                <div className="flex items-center justify-between">
-                  <div className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-600 tracking-tighter font-mono">
+              <ScrollReveal key={pillar.title} direction="up" delay={100 + idx * 150} className="space-y-6 bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 hover:bg-white/[0.04] hover:border-white/20 transition-all duration-300 shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl sm:text-2xl font-black text-white tracking-tighter font-mono">
                     0{idx + 1}
                   </div>
-                  <span className="text-[10px] sm:text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-white/5 border border-white/15 text-gray-300 font-bold">
+                  <span className="text-[10px] sm:text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 font-bold">
                     {pillar.badge}
                   </span>
                 </div>
@@ -764,102 +953,15 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
                 <p className="text-gray-400 text-xs sm:text-sm leading-relaxed font-sans">
                   {pillar.description}
                 </p>
-                <div className="pl-3 border-l-2 border-white/30 text-xs text-gray-300 font-mono italic py-1">
+                <div className="bg-[#0a0a0a]/50 p-3 rounded-lg border border-white/5 text-xs text-gray-400 font-mono italic py-2">
                   &ldquo;{pillar.visualText}&rdquo;
                 </div>
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
+                <div className="pt-6 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-gray-400">
                   <span>{pillar.visualBadge}</span>
-                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded border border-white/20">{pillar.visualStat}</span>
+                  <span className="text-white font-bold bg-white/10 px-2.5 py-1 rounded border border-white/10">{pillar.visualStat}</span>
                 </div>
               </ScrollReveal>
             ))}
-          </div>
-        </ScrollReveal>
-      </div>
-
-      <SectionConnector number="04" label="Interactive Step-By-Step Guide" />
-
-      {/* Section 4: Step-by-Step Guide (Cardless Split Display & Stepper) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 mx-auto z-10 pb-10 sm:pb-16">
-        <ScrollReveal direction="up" className="max-w-[1500px] mx-auto">
-          <div className="mb-6 sm:mb-8 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] sm:text-xs font-mono uppercase tracking-wider text-gray-300 mb-2.5">
-              <Download className="w-3.5 h-3.5 text-white" />
-              <span>Step-by-Step Guide</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-extrabold text-white tracking-tight">
-              How To Use RepoMap: From GitHub Link to AST Mastery
-            </h2>
-          </div>
-
-          {/* Horizontal Timeline Stepper Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 border-b border-white/15 pb-4 sm:pb-6">
-            {stepData.map((item, idx) => (
-              <button
-                key={item.step}
-                onClick={() => setActiveStepTab(idx)}
-                className={`text-left pb-3 transition-all duration-200 flex items-center justify-between group ${activeStepTab === idx
-                  ? 'border-b-2 border-white text-white opacity-100'
-                  : 'text-gray-500 hover:text-gray-300 opacity-70 hover:opacity-100'
-                  }`}
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3">
-                  <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-mono font-bold text-xs shrink-0 ${activeStepTab === idx ? 'bg-white text-black shadow-lg' : 'bg-white/10 text-white'
-                    }`}>
-                    0{item.step}
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm lg:text-base">{item.title}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Cardless Interactive Command Console Split */}
-          <div key={activeStepTab} className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start animate-in fade-in duration-300 pt-2">
-            <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-2.5 text-xs font-mono text-gray-400">
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span className="text-white font-bold">STEP 0{stepData[activeStepTab].step}</span>
-                <span>//</span>
-                <span>{stepData[activeStepTab].mockupHeader}</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight">
-                {stepData[activeStepTab].title}
-              </h3>
-              <p className="text-gray-400 text-xs sm:text-sm lg:text-base leading-relaxed font-sans">
-                {stepData[activeStepTab].description}
-              </p>
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-4">
-                <button
-                  onClick={() => setActiveStepTab((prev) => (prev + 1) % stepData.length)}
-                  className="bg-white hover:bg-gray-200 text-black font-semibold py-2 sm:py-2.5 px-5 sm:px-6 rounded-xl transition-colors text-xs sm:text-sm flex items-center gap-2 shadow-md"
-                >
-                  Next Step <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
-                <span className="text-[11px] text-gray-500 font-mono">Click Next or use tabs above to cycle steps</span>
-              </div>
-            </div>
-
-            {/* Right Column: Borderless Live Simulation Console over #000000 */}
-            <div className="lg:col-span-6 font-mono border-l lg:border-l-2 border-white/15 pl-0 lg:pl-10 space-y-5 pt-4 lg:pt-0">
-              <div className="flex items-center justify-between border-b border-white/15 pb-4 text-xs text-gray-400">
-                <div className="flex items-center gap-2 text-white font-bold font-sans">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Live Simulation Console</span>
-                </div>
-                <span className="text-white font-bold bg-white/10 px-2.5 py-0.5 rounded border border-white/20 text-[11px]">{stepData[activeStepTab].mockupStatus}</span>
-              </div>
-
-              <div className="text-white text-xs sm:text-sm md:text-base flex items-center justify-between gap-4 py-3">
-                <span className="break-all sm:break-normal font-mono text-emerald-300">{stepData[activeStepTab].mockupCommand}</span>
-                <span className="text-[10px] sm:text-xs bg-white/10 text-white px-2.5 py-1 rounded font-mono border border-white/20 shrink-0">Active Action</span>
-              </div>
-
-              <div className="pt-4 border-t border-white/10 text-[11px] text-gray-500 font-mono flex justify-between">
-                <span>Engine status: <strong className="text-white">Ready</strong></span>
-                <span>Spatial layout: <strong className="text-white">Deterministic</strong></span>
-              </div>
-            </div>
           </div>
         </ScrollReveal>
       </div>
