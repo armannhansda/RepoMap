@@ -39,10 +39,22 @@ class AnalysisJobPool {
 
     this.inFlightJobs.set(repoId, promise);
 
-    // Clean up in-flight map when completed or failed
-    promise.finally(() => {
-      this.inFlightJobs.delete(repoId);
-    });
+    // Clean up in-flight map when completed or failed.
+    // NOTE: `.finally()` creates a *new* derived promise that also
+    // rejects if `promise` rejects. Nothing else attaches a handler
+    // to that derived promise, so without the `.catch()` below, a
+    // fast-failing task (e.g. a private repo clone) causes an
+    // unhandled promise rejection that crashes the whole Node process
+    // on newer Node versions. The `.catch()` here simply swallows that
+    // derived rejection — the *original* `promise` (returned above and
+    // awaited by the caller) is still rejected and handled normally.
+    promise
+      .finally(() => {
+        this.inFlightJobs.delete(repoId);
+      })
+      .catch(() => {
+        // Intentionally empty — see note above.
+      });
 
     return promise;
   }
