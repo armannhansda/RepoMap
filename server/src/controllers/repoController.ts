@@ -97,7 +97,7 @@ export async function analyzeRepo(
       error: error instanceof Error ? error.message : String(error),
     });
     res.status(500).json({
-      error: "failed to analyze repository",
+       error: error instanceof Error ? error.message : "failed to analyze repository",
     });
   }
 }
