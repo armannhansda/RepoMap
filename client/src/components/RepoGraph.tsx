@@ -11,6 +11,7 @@ import { getOpenedFile, saveOpenedFile } from "@/lib/db/openedFiles";
 import { getFileContent, explainNode } from "@/services/api";
 import ReactMarkdown from 'react-markdown';
 import { Loader2, Sparkles, Copy, Check } from "lucide-react";
+import GraphSearch from "./GraphSearch";
 
 const initialNodeTypes = {
   custom: CustomNode,
@@ -23,15 +24,103 @@ interface Props {
   selectedNodeId?: string;
 }
 
-function FitViewOnUpdate({ nodes }: { nodes: any[] }) {
+function FitViewOnUpdate({ nodes, skipNextRef }: { nodes: any[]; skipNextRef: React.MutableRefObject<boolean> }) {
   const { fitView } = useReactFlow();
 
   useEffect(() => {
+    // When a search-triggered jump is about to run (see JumpToNode below),
+    // skip this fitView entirely — otherwise the view zooms out to fit
+    // everything first, then our jump immediately re-centers/zooms again,
+    // producing a jarring double camera movement instead of one smooth jump.
+    if (skipNextRef.current) {
+      skipNextRef.current = false;
+      return;
+    }
     const timer = setTimeout(() => {
       fitView({ padding: 0.2, duration: 800 });
     }, 50);
     return () => clearTimeout(timer);
-  }, [nodes, fitView]);
+  }, [nodes, fitView, skipNextRef]);
+
+  return null;
+}
+
+// Pans and zooms the canvas to frame a given node together with its
+// directly connected neighbors, once the node's laid-out position becomes
+// available. Used to "jump" to a node selected via search, fulfilling the
+// Search & Jump feature request (#7).
+//
+// Earlier version centered on a single point (setCenter). That worked for
+// small expansions, but broke down for nodes with many call/called-by
+// connections: Dagre's left-to-right layout stacks all connected nodes
+// in the next rank, often placing the target near one edge of a very
+// tall span. Centering on a single point then left most of the relevant
+// context (and sometimes the node's readable label) outside the visible
+// viewport. Computing a bounding box around the node AND its direct
+// neighbors, then using fitBounds, guarantees the searched node is shown
+// together with enough surrounding context, regardless of where it sits
+// within the expanded layout.
+function JumpToNode({
+  nodes,
+  edges,
+  request,
+}: {
+  nodes: any[];
+  edges: any[];
+  request: { id: string; nonce: number } | null;
+}) {
+  const { fitBounds } = useReactFlow();
+  const handledNonceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!request || request.nonce === handledNonceRef.current) return;
+    const targetNode = nodes.find((n) => n.id === request.id);
+    if (!targetNode) return; // position not laid out yet — wait for the next update
+
+    handledNonceRef.current = request.nonce;
+
+    // Wait two animation frames so layout/sidebar resize has genuinely
+    // settled before we measure positions — see prior comment history
+    // in this file for why a fixed timeout isn't reliable here.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const settledTarget = nodes.find((n) => n.id === request.id) ?? targetNode;
+
+        const connectedIds = new Set<string>([settledTarget.id]);
+        edges.forEach((e: any) => {
+          if (e.source === settledTarget.id) connectedIds.add(e.target);
+          if (e.target === settledTarget.id) connectedIds.add(e.source);
+        });
+
+        const relevantNodes = nodes.filter((n) => connectedIds.has(n.id));
+        const nodesForBounds = relevantNodes.length > 0 ? relevantNodes : [settledTarget];
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        nodesForBounds.forEach((n) => {
+          const w = n.width ?? 150;
+          const h = n.height ?? 50;
+          minX = Math.min(minX, n.position.x);
+          minY = Math.min(minY, n.position.y);
+          maxX = Math.max(maxX, n.position.x + w);
+          maxY = Math.max(maxY, n.position.y + h);
+        });
+
+        fitBounds(
+          { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
+          { padding: 0.3, duration: 600 }
+        );
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [nodes, edges, request, fitBounds]);
 
   return null;
 }
@@ -42,6 +131,16 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Tracks the most recent "jump to this node" request from search (or
+  // could be extended to other triggers later). Lives here, inside the
+  // component, since useState must be called during render — never at
+  // module scope.
+  const [jumpRequest, setJumpRequest] = useState<{ id: string; nonce: number } | null>(null);
+  // Set to true the instant a search result is clicked, read (and reset)
+  // by FitViewOnUpdate on the very next nodes update, so that update's
+  // fitView is skipped in favor of JumpToNode's single camera movement.
+  const skipNextFitRef = useRef(false);
 
   useEffect(() => {
     if (!graph || !graph.nodes) {
@@ -427,7 +526,16 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         }}
         proOptions={proOptions}
       >
-        <FitViewOnUpdate nodes={nodes} />
+        <FitViewOnUpdate nodes={nodes} skipNextRef={skipNextFitRef} />
+        <JumpToNode nodes={nodes} edges={edges} request={jumpRequest} />
+        <GraphSearch
+          nodes={graph.nodes}
+          onSelectResult={(node) => {
+            skipNextFitRef.current = true;
+            onNodeSelect(node);
+            setJumpRequest({ id: node.id, nonce: Date.now() });
+          }}
+        />
         
         {/* Base Faint Background */}
         <Background color="rgba(255, 255, 255, 0.1)" gap={16} size={1} />
