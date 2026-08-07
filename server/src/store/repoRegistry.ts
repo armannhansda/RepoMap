@@ -7,6 +7,7 @@ export interface CachedAnalysis {
   repoPath: string;
   graph: any;
   timestamp: number;
+  commitHash: string;
 }
 
 const repositories = new Map<string, string>();
@@ -29,12 +30,18 @@ export function getRepository(repoId: string) {
   return repositories.get(repoId);
 }
 
-export function saveAnalysis(repoId: string, repoPath: string, graph: any): CachedAnalysis {
+export function saveAnalysis(
+  repoId: string,
+  repoPath: string,
+  graph: any,
+  commitHash: string
+): CachedAnalysis {
   const cached: CachedAnalysis = {
     repoId,
     repoPath,
     graph,
     timestamp: Date.now(),
+    commitHash,
   };
   analysisCache.set(repoId, cached);
   repositories.set(repoId, repoPath);
@@ -59,6 +66,12 @@ export function getCachedAnalysis(repoId: string): CachedAnalysis | undefined {
     if (fs.existsSync(diskPath)) {
       const data = fs.readFileSync(diskPath, "utf-8");
       const cached: CachedAnalysis = JSON.parse(data);
+      // Backfill commitHash for entries written before this field
+      // existed, so older cache files don't crash comparisons — treat
+      // them as unknown/stale rather than assuming freshness.
+      if (!cached.commitHash) {
+        cached.commitHash = "";
+      }
       analysisCache.set(repoId, cached);
       repositories.set(repoId, cached.repoPath);
       return cached;

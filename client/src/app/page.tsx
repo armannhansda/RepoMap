@@ -17,7 +17,7 @@ const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr:
 const HealthDashboardModal = dynamic(() => import("@/components/HealthDashboardModal"), { ssr: false });
 const MultiAgentOrchestratorModal = dynamic(() => import("@/components/MultiAgentOrchestratorModal"), { ssr: false });
 
-import { getRepository, saveRepository } from "@/lib/db/repositories";
+import { getRepository, saveRepository, clearRepositoryData } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
 
 function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
@@ -335,28 +335,65 @@ export default function Home() {
 
       // 1. Check IndexedDB
       const existingRepo = await getRepository(repoUrl);
-      if (existingRepo) {
-        const existingGraph = await getGraph(repoUrl);
-        if (existingGraph) {
-          // Render instantly from cache
-          setGraph({ nodes: existingGraph.nodes, edges: existingGraph.edges });
-          setRepoId(existingRepo.id);
-          setSelectedNodeId(existingRepo.lastOpenedFile);
-          setLoading(false);
-          return;
-        }
+      const existingGraph = existingRepo ? await getGraph(repoUrl) : null;
+
+      if (existingRepo && existingGraph) {
+        // Render instantly from cache — preserves the existing "instant"
+        // feel for repos that haven't changed since last analysis.
+        setGraph({ nodes: existingGraph.nodes, edges: existingGraph.edges });
+        setRepoId(existingRepo.id);
+        setSelectedNodeId(existingRepo.lastOpenedFile);
+        setLoading(false);
+
+        // 2. Quietly verify freshness in the background (fixes #22).
+        // The backend's own cache-hit path is fast (one small remote
+        // check, not a full re-clone), so this doesn't block the UI —
+        // if nothing changed, the user never notices. If the repo has
+        // new commits, we swap in the fresh graph and let them know.
+        analyzeRepo(repoUrl)
+          .then(async (result) => {
+            if (result.commitHash && result.commitHash !== existingRepo.commitHash) {
+              // Clear the OLD repo/graph/openedFiles entries first —
+              // this repo changed, so any cached per-file source
+              // previews from the old commit are stale too (not just
+              // the graph). clearRepositoryData already atomically
+              // wipes repositories + graph + openedFiles for this
+              // repoUrl in one transaction.
+              await clearRepositoryData(repoUrl);
+
+              const updatedRepo = {
+                ...existingRepo,
+                commitHash: result.commitHash,
+                analyzedAt: Date.now(),
+              };
+              await saveRepository(updatedRepo);
+              await saveGraph({
+                repoId: repoUrl,
+                nodes: result.graph.nodes,
+                edges: result.graph.edges,
+              });
+              setGraph(result.graph);
+              toast.success("This repository has new commits — graph updated.");
+            }
+          })
+          .catch((err) => {
+            // A failed background freshness check shouldn't disrupt the
+            // user, who already has a working cached view — just log it.
+            console.error("Background freshness check failed:", err);
+          });
+
+        return;
       }
 
-      // 2. Call backend if not cached
+      // No local cache at all — full first-time analysis, unchanged.
       const result = await analyzeRepo(repoUrl);
 
-      // 3. Save new data to IndexedDB
       const newRepo = {
         id: repoUrl,
         repoUrl: repoUrl,
         repoName: repoUrl.split("/").pop()?.replace(".git", "") || repoUrl,
         branch: "main",
-        commitHash: "unknown",
+        commitHash: result.commitHash || "unknown",
         analyzedAt: Date.now(),
         fileTree: [],
       };
@@ -365,12 +402,11 @@ export default function Home() {
       await saveGraph({
         repoId: repoUrl,
         nodes: result.graph.nodes,
-        edges: result.graph.edges
+        edges: result.graph.edges,
       });
 
-      // 4. Render UI
       setGraph(result.graph);
-      setRepoId(result.repoId); // which is now also repoUrl
+      setRepoId(result.repoId);
       setSelectedNodeId(undefined);
       toast.success("Repository loaded successfully!");
     } catch (error: any) {
