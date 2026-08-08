@@ -139,7 +139,7 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
     currentRefs.forEach((ref) => {
       if (ref) observer.observe(ref);
     });
-    
+
     const currentPRefs = personaRefs.current;
     currentPRefs.forEach((ref) => {
       if (ref) pObserver.observe(ref);
@@ -612,8 +612,8 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
                   ref={(el) => { stepRefs.current[idx] = el; }}
                   data-index={idx}
                   className={`space-y-6 transition-all duration-700 ease-out transform ${activeStepTab === idx
-                      ? 'opacity-100 translate-y-0 scale-100'
-                      : 'opacity-20 translate-y-8 scale-95'
+                    ? 'opacity-100 translate-y-0 scale-100'
+                    : 'opacity-20 translate-y-8 scale-95'
                     }`}
                 >
                   <div className="flex items-center gap-2.5 text-xs font-mono text-gray-500">
@@ -847,8 +847,8 @@ export default function LandingPage({ repoUrl, setRepoUrl, onAnalyze, loading }:
           {/* Glassmorphism Split HUD Display - Horizontal Scroll */}
           <div ref={personaScrollContainerRef} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden gap-8 lg:gap-10 pb-8 pt-6 w-full relative">
             {personasData.map((persona, index) => (
-              <div 
-                key={persona.role} 
+              <div
+                key={persona.role}
                 ref={(el) => { personaRefs.current[index] = el; }}
                 data-persona-index={index}
                 className={`w-full shrink-0 snap-center grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start transition-opacity duration-500 ${activePersonaTab === index ? 'opacity-100' : 'opacity-40'}`}
