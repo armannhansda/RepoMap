@@ -15,8 +15,8 @@ export async function explainNode(req: Request, res: Response): Promise<void> {
   try {
     const { label, type, path, functionType, calls, calledBy, imports, sourceCode } = req.body;
 
-    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-      res.status(500).json({ error: "Neither GEMINI_API_KEY nor GROQ_API_KEY is configured on the server." });
+    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY && !process.env.NVIDIA_API_KEY) {
+      res.status(500).json({ error: "No AI API key (Gemini/Groq/NVIDIA) is configured on the server." });
       return;
     }
 
@@ -53,8 +53,8 @@ export async function explainRepo(req: Request, res: Response): Promise<void> {
   try {
     const { repoName, files } = req.body;
     
-    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-      res.status(500).json({ error: "Neither GEMINI_API_KEY nor GROQ_API_KEY is configured on the server." });
+    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY && !process.env.NVIDIA_API_KEY) {
+      res.status(500).json({ error: "No AI API key (Gemini/Groq/NVIDIA) is configured on the server." });
       return;
     }
 
@@ -83,8 +83,8 @@ export async function generateDiagram(req: Request, res: Response): Promise<void
   try {
     const { repoName, files } = req.body;
     
-    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-      res.status(500).json({ error: "Neither GEMINI_API_KEY nor GROQ_API_KEY is configured on the server." });
+    if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY && !process.env.NVIDIA_API_KEY) {
+      res.status(500).json({ error: "No AI API key (Gemini/Groq/NVIDIA) is configured on the server." });
       return;
     }
 

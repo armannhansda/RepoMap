@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import Groq from "groq-sdk";
+import { generateAIContent } from "./aiProvider.js";
 
 export interface ArchitectureQueryResult {
   question: string;
@@ -8,49 +7,7 @@ export interface ArchitectureQueryResult {
   tracedFlow?: Array<{ step: number; label: string; file: string; description: string }> | undefined;
 }
 
-async function generateAIContent(prompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-    throw new Error("Neither GEMINI_API_KEY nor GROQ_API_KEY is configured.");
-  }
 
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-      if (response.text) return response.text;
-    } catch (err) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: prompt,
-        });
-        if (response.text) return response.text;
-      } catch (err2) {
-        console.warn("Gemini query failed, falling back to Groq...", err2);
-      }
-    }
-  }
-
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const response = await groq.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "llama-3.3-70b-versatile",
-      });
-      const content = response.choices[0]?.message?.content;
-      if (content) return content;
-    } catch (err) {
-      console.warn("Groq query failed:", err);
-    }
-  }
-
-  throw new Error("Failed to generate architecture answer across all configured AI providers.");
-}
 
 export async function queryArchitecture(
   repoId: string,
@@ -108,7 +65,7 @@ export async function queryArchitecture(
         step,
         label: currNode.label,
         file: currNode.file || currNode.path || "unknown",
-        description: currNode.apiEndpoint 
+        description: currNode.apiEndpoint
           ? `API Handler for ${currNode.apiEndpoint.httpMethod} ${currNode.apiEndpoint.routePath}`
           : currNode.functionType ? `${currNode.functionType} function` : "Module function"
       });
@@ -166,7 +123,7 @@ Return ONLY your Markdown answer text.`;
     let fallbackText = `### Architecture Query Analysis for "${question}"\n\n`;
     fallbackText += `**System Architecture:**\n${archOverview}\n\n`;
     fallbackText += `**Technical Stack:**\n${techOverview}\n\n`;
-    
+
     if (tracedFlow && tracedFlow.length > 0) {
       fallbackText += `### Traced Execution Flow:\n`;
       tracedFlow.forEach(f => {
