@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import Groq from "groq-sdk";
+import { generateAIContent } from "../aiProvider.js";
 import { calculateBlastRadius } from "../impactAnalyzer.ts";
 
 export interface AgentStepLog {
@@ -22,49 +21,7 @@ export interface OrchestratorReport {
   totalExecutionTimeMs: number;
 }
 
-async function generateAIContent(prompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-    throw new Error("Neither GEMINI_API_KEY nor GROQ_API_KEY is configured.");
-  }
 
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-      if (response.text) return response.text;
-    } catch (err) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: prompt,
-        });
-        if (response.text) return response.text;
-      } catch (err2) {
-        console.warn("Gemini orchestrator generation failed, falling back to Groq...", err2);
-      }
-    }
-  }
-
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const response = await groq.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "llama-3.3-70b-versatile",
-      });
-      const content = response.choices[0]?.message?.content;
-      if (content) return content;
-    } catch (err) {
-      console.warn("Groq orchestrator generation failed:", err);
-    }
-  }
-
-  throw new Error("Failed to generate multi-agent content across all configured AI providers.");
-}
 
 // Subroutine 1: Graph Search Tool
 function searchNodesByName(nodes: any[], keywords: string[]): any[] {
@@ -162,7 +119,7 @@ Return ONLY a JSON object with:
 - "keywords": array of 3-6 exact code symbols, filenames, or domain keywords to search in AST graph.
 - "subtasks": array of 3 sequential operational goals to accomplish this request.
 Return ONLY valid JSON.`);
-    
+
     let jsonStr = plannerAI;
     const sIdx = plannerAI.indexOf("{");
     const eIdx = plannerAI.lastIndexOf("}");
@@ -203,7 +160,7 @@ Return ONLY valid JSON.`);
   }
 
   const uniqueMatches = Array.from(new Map(matchedNodes.map(n => [n.id, n])).values()).slice(0, 10);
-  
+
   steps.push({
     agentName: "Graph Search Agent",
     status: uniqueMatches.length > 0 ? "completed" : "warning",
@@ -231,7 +188,7 @@ Return ONLY valid JSON.`);
       console.warn(`Could not run blast radius simulation for ${n.id}, using deterministic fallback.`);
     }
     const score = brResult ? brResult.riskScore : Math.min(100, (n.calledBy?.length || 0) * 10);
-    
+
     discoveredSymbols.push({
       id: n.id,
       label: n.label,

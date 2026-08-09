@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "RepoMap Backend Server & Parser Engine",
   "main": "index.js",
   "scripts": {
     "postinstall": "cd ../parser && npm install",
@@ -10,17 +10,17 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "description": "RepoMap Backend Server & Parser Engine",
   "author": "Arman Hansda",
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@google/genai": "^2.9.0",
+    "@google/genai": "^2.16.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "groq-sdk": "^1.3.0",
     "nodemon": "^3.1.14",
+    "openai": "^7.4.0",
     "posthog-node": "^5.45.2",
     "simple-git": "^3.36.0"
   },

@@ -1,5 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import Groq from "groq-sdk";
+import { generateAIContent } from "./aiProvider.js";
 
 export interface TaskPlanResult {
   understanding: string;
@@ -14,49 +13,7 @@ export interface TaskPlanResult {
   technicalConsiderations: string[];
 }
 
-async function generateAIContent(prompt: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY && !process.env.GROQ_API_KEY) {
-    throw new Error("Neither GEMINI_API_KEY nor GROQ_API_KEY is configured.");
-  }
 
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-      if (response.text) return response.text;
-    } catch (err) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: prompt,
-        });
-        if (response.text) return response.text;
-      } catch (err2) {
-        console.warn("Gemini planning failed, falling back to Groq...", err2);
-      }
-    }
-  }
-
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-      const response = await groq.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: "llama-3.3-70b-versatile",
-      });
-      const content = response.choices[0]?.message?.content;
-      if (content) return content;
-    } catch (err) {
-      console.warn("Groq planning failed:", err);
-    }
-  }
-
-  throw new Error("Failed to generate task plan across all configured AI providers.");
-}
 
 export async function generateTaskPlan(
   repoId: string,
