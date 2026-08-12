@@ -1,9 +1,10 @@
 "use client";
 
-import { Background, Controls, MiniMap, ReactFlow, MarkerType, useReactFlow, useNodesState, useEdgesState } from "reactflow";
+import { Background, Controls, MiniMap, ReactFlow, MarkerType, useReactFlow, useNodesState, useEdgesState, type ReactFlowInstance } from "reactflow";
 import "reactflow/dist/style.css";
 import { getLayoutedElements } from "@/utils/layoutGragh";
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { exportGraphAsPng, exportGraphAsPdf } from "@/utils/exportGraphImage";
+import React, { useEffect, useState, useRef, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import CustomNode from "./CustomNode";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -16,6 +17,15 @@ import GraphSearch from "./GraphSearch";
 const initialNodeTypes = {
   custom: CustomNode,
 };
+
+// Imperative methods exposed to the parent (page.tsx / Header's Export
+// dropdown), since the actual capture logic needs direct access to this
+// component's DOM container and React Flow instance — neither of which
+// the parent has any other way to reach. See performExport below.
+export interface RepoGraphHandle {
+  exportAsPng: () => Promise<void>;
+  exportAsPdf: () => Promise<void>;
+}
 
 interface Props {
   graph: any;
@@ -125,12 +135,21 @@ function JumpToNode({
   return null;
 }
 
-function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
+const RepoGraph = forwardRef<RepoGraphHandle, Props>(function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }, ref) {
   const [nodeTypes] = useState(initialNodeTypes);
   const [proOptions] = useState({ hideAttribution: true });
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Captured via <ReactFlow onInit={...}> below. This is the simplest
+  // way to get imperative instance methods (fitView, getViewport,
+  // setViewport) from OUTSIDE the <ReactFlow> tree — useReactFlow()
+  // only works in components rendered as children of <ReactFlow>
+  // (like FitViewOnUpdate/JumpToNode below), not in this outer
+  // component, which is the one that needs to expose export methods
+  // up to the parent via the ref.
+  const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null);
 
   // Tracks the most recent "jump to this node" request from search (or
   // could be extended to other triggers later). Lives here, inside the
@@ -478,6 +497,139 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
     return { displayNodes: highlightedNodes, displayEdges: highlightedEdges };
   }, [nodes, edges, hoveredNode, selectedNodeId]);
 
+  const performExport = useCallback(
+    async (format: "png" | "pdf") => {
+      const instance = reactFlowInstanceRef.current;
+      const container = containerRef.current;
+      if (!instance || !container) {
+        throw new Error("Graph is not ready to export yet.");
+      }
+
+      // Remember everything we're about to change, so we can restore
+      // it exactly afterward — exporting shouldn't leave any lasting
+      // trace on the user's session.
+      const previousViewport = instance.getViewport();
+      const previousWidth = container.style.width;
+      const previousHeight = container.style.height;
+      const hadLodLow = container.classList.contains("lod-low");
+
+      // The earlier version of this export fit the WHOLE graph into
+      // the normal-sized viewport by zooming out very far, then relied
+      // on a high pixelRatio to upscale the result. That doesn't work
+      // for large graphs: shrinking hundreds of nodes down to fit a
+      // ~1900px-wide viewport leaves only a few real pixels per node,
+      // and no amount of upscaling afterward can recover detail that
+      // was never rendered at readable size to begin with — you're
+      // just blowing up a blurry source.
+      //
+      // The correct approach (what real diagramming tools do): don't
+      // shrink the content at all. Instead, compute the graph's actual
+      // full size in flow coordinates, temporarily resize the capture
+      // container to match it, and position the viewport so every node
+      // renders at its true, native resolution. The resulting image is
+      // simply as large as the graph actually is — large graphs produce
+      // large images, but every node stays crisp, because nothing was
+      // ever shrunk in the first place.
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      nodes.forEach((n) => {
+        const w = n.width ?? 260;
+        const h = n.height ?? 120;
+        minX = Math.min(minX, n.position.x);
+        minY = Math.min(minY, n.position.y);
+        maxX = Math.max(maxX, n.position.x + w);
+        maxY = Math.max(maxY, n.position.y + h);
+      });
+
+      if (minX === Infinity) {
+        throw new Error("Graph has no nodes to export.");
+      }
+
+      const PADDING = 80; // flow-coordinate padding around the content
+      const contentWidth = maxX - minX + PADDING * 2;
+      const contentHeight = maxY - minY + PADDING * 2;
+
+      // Safety cap: the earlier cap of 10,000px, combined with a
+      // pixelRatio multiplier on top, produced canvases large enough
+      // (~200+ million pixels, with hundreds of DOM nodes using
+      // expensive CSS like backdrop-blur and gradients) to spike
+      // CPU/GPU usage hard enough to crash the browser tab on a
+      // 400+ node graph. This cap is deliberately much more
+      // conservative — stability matters more than squeezing out
+      // marginally more resolution. For very large repos, content
+      // will be scaled down somewhat to stay within this budget; that
+      // trade-off is expected and preferable to a crash.
+      const MAX_CAPTURE_DIMENSION = 4000;
+      const scale = Math.min(1, MAX_CAPTURE_DIMENSION / Math.max(contentWidth, contentHeight));
+
+      const captureWidth = Math.ceil(contentWidth * scale);
+      const captureHeight = Math.ceil(contentHeight * scale);
+
+      container.style.width = `${captureWidth}px`;
+      container.style.height = `${captureHeight}px`;
+
+      instance.setViewport(
+        { x: -(minX - PADDING) * scale, y: -(minY - PADDING) * scale, zoom: scale },
+        { duration: 0 }
+      );
+
+      // Wait for the container's resize to actually take effect (React
+      // Flow watches its container via ResizeObserver and needs a beat
+      // to recompute internally) and for the DOM to finish painting at
+      // the new size/viewport before we capture it.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
+      // Strip the 'lod-low' performance class (hides/truncates node
+      // detail below zoom 0.6) AFTER setViewport, not before. setViewport
+      // triggers this component's own onMove handler, which re-derives
+      // and re-applies 'lod-low' based on the NEW zoom — and our export
+      // zoom (`scale`) is almost always well under 0.6 for large graphs.
+      // Removing the class before setViewport meant it got silently
+      // re-added a moment later by that onMove side-effect, so every
+      // export was actually capturing the low-detail/truncated-label
+      // rendering regardless of what the user saw on screen beforehand
+      // (which is why manually zooming in before export seemed to
+      // "fix" it — that was incidental, not the real cause). Removing
+      // it here, after the viewport change and its side-effects have
+      // already settled, is the actual fix.
+      container.classList.remove("lod-low");
+
+      const repoName =
+        repoId?.split("/").filter(Boolean).pop()?.replace(".git", "") || "repository";
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const filename = `${repoName}-graph-${dateStamp}`;
+
+      try {
+        if (format === "png") {
+          await exportGraphAsPng(container, filename);
+        } else {
+          await exportGraphAsPdf(container, filename);
+        }
+      } finally {
+        // Always restore everything, even if the export itself failed
+        // partway through.
+        container.style.width = previousWidth;
+        container.style.height = previousHeight;
+        if (hadLodLow) container.classList.add("lod-low");
+        instance.setViewport(previousViewport, { duration: 0 });
+      }
+    },
+    [repoId, nodes]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      exportAsPng: () => performExport("png"),
+      exportAsPdf: () => performExport("pdf"),
+    }),
+    [performExport]
+  );
+
   return (
     <div 
       ref={containerRef}
@@ -487,7 +639,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
     >
       {/* Large Repo Mode Floating Notice */}
       {!selectedNodeId && graph?.nodes?.length > 350 && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-black/80 border border-white/20 text-white px-5 py-2.5 rounded-full text-xs font-mono backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-in fade-in duration-300">
+        <div data-export-exclude="true" className="absolute top-6 left-1/2 -translate-x-1/2 z-30 bg-black/80 border border-white/20 text-white px-5 py-2.5 rounded-full text-xs font-mono backdrop-blur-xl shadow-2xl flex items-center gap-3 animate-in fade-in duration-300">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>⚡ Large Repo Mode Active: Showing Macro Directory & File Map ({nodes.length} visible of {graph.nodes.length} total AST nodes). Click any file to expand internal functions.</span>
         </div>
@@ -500,6 +652,9 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
+        onInit={(instance) => {
+          reactFlowInstanceRef.current = instance;
+        }}
         onMove={handleMove}
         onNodeClick={(_, node) => onNodeSelect(node)}
         onNodeDragStart={() => {
@@ -543,6 +698,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         {/* Highlighted Bright Background with mask */}
         <div 
           ref={maskRef}
+          data-export-exclude="true"
           className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-300"
           style={{
             maskImage: `radial-gradient(circle 200px at -1000px -1000px, black 0%, transparent 100%)`,
@@ -563,6 +719,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         {hoveredNode && !isDragging && (
           <div 
             ref={panelRef}
+            data-export-exclude="true"
             className="fixed z-50 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl p-3 w-72 transition-opacity"
             style={{ left: hoverPosition.x + 15 + dragOffset.x, top: hoverPosition.y + 15 + dragOffset.y }}
             onMouseEnter={() => {
@@ -685,7 +842,7 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
         )}
 
         {/* Legend */}
-        <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg p-3 shadow-lg z-10 w-56 text-sm">
+        <div data-export-exclude="true" className="absolute top-4 right-4 bg-black/40 backdrop-blur-md border border-white/10 rounded-lg p-3 shadow-lg z-10 w-56 text-sm">
           <h4 className="font-medium text-text-muted mb-2 text-xs uppercase tracking-wider">Legend</h4>
           
           <div className="space-y-3">
@@ -739,6 +896,6 @@ function RepoGraph({ graph, repoId, onNodeSelect, selectedNodeId }: Props) {
       </ReactFlow>
     </div>
   );
-}
+});
 
 export default React.memo(RepoGraph);

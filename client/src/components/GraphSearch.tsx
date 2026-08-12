@@ -31,7 +31,7 @@ export default function GraphSearch({ nodes, onSelectResult }: GraphSearchProps)
   }, [nodes, query]);
 
   return (
-    <div className="absolute top-4 left-4 z-20 w-72">
+    <div data-export-exclude="true" className="absolute top-4 left-4 z-20 w-72">
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
         <input
