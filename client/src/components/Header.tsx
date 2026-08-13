@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { 
   Search, CornerDownLeft, Plus, Sparkles, BookOpen, Bot, 
-  ListTodo, Zap, Activity, ShieldCheck, Download, Loader2, X, Home, ChevronDown, FileImage, FileText
+  ListTodo, Zap, Activity, ShieldCheck, Download, Loader2, X, Home, ChevronDown, FileImage, FileText, Boxes
 } from "lucide-react";
 import Image from "next/image";
 
@@ -283,7 +283,7 @@ function HeaderComponent({
                 >
                   <FileImage className="w-4 h-4 text-white/50 shrink-0" />
                   <div className="flex flex-col">
-                    <span className="font-medium">Export as PNG</span>
+                    <span className="font-medium">Export Graph as PNG</span>
                     <span className="text-[10px] text-white/40">High-res image of the graph</span>
                   </div>
                 </button>
@@ -296,8 +296,21 @@ function HeaderComponent({
                 >
                   <FileText className="w-4 h-4 text-white/50 shrink-0" />
                   <div className="flex flex-col">
-                    <span className="font-medium">Export as PDF</span>
+                    <span className="font-medium">Export Graph as PDF</span>
                     <span className="text-[10px] text-white/40">For docs & presentations</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    onExportDiagram();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-xs text-white/90 hover:bg-white/10 transition-colors cursor-pointer border-t border-white/5"
+                >
+                  <Boxes className="w-4 h-4 text-white/50 shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Export Architecture Diagram</span>
+                    <span className="text-[10px] text-white/40">AI-generated .drawio file</span>
                   </div>
                 </button>
                 <div className="px-3.5 py-2.5 border-t border-white/5 flex items-start gap-2">
