@@ -11,11 +11,12 @@ import FileSidebar from "@/components/FileSidebar";
 import LandingPage from "@/components/LandingPage";
 import { Sparkles, Download, Loader2, BookOpen, Bot, ListTodo, Activity, ShieldCheck, GitBranch, Zap, CheckCircle2, File as FileIcon } from "lucide-react";
 import { toast } from "sonner";
+import { isVSCode } from "@/utils/vscode";
 
-const RepoExplanationModal = dynamic(() => import("@/components/RepoExplanationModal"), { ssr: false });
-const AiAgentsModal = dynamic(() => import("@/components/AiAgentsModal"), { ssr: false });
-const HealthDashboardModal = dynamic(() => import("@/components/HealthDashboardModal"), { ssr: false });
-const MultiAgentOrchestratorModal = dynamic(() => import("@/components/MultiAgentOrchestratorModal"), { ssr: false });
+import RepoExplanationModal from "@/components/RepoExplanationModal";
+import AiAgentsModal from "@/components/AiAgentsModal";
+import HealthDashboardModal from "@/components/HealthDashboardModal";
+import MultiAgentOrchestratorModal from "@/components/MultiAgentOrchestratorModal";
 
 import { getRepository, saveRepository, clearRepositoryData } from "@/lib/db/repositories";
 import { getGraph, saveGraph } from "@/lib/db/graph";
@@ -417,6 +418,18 @@ export default function Home() {
     }
   }, [repoUrl]);
 
+  useEffect(() => {
+    if (isVSCode && !graph && !loading && !repoUrl) {
+      setRepoUrl("local-workspace");
+    }
+  }, [graph, loading, repoUrl]);
+
+  useEffect(() => {
+    if (repoUrl === "local-workspace" && !graph && !loading) {
+      handleAnalyze();
+    }
+  }, [repoUrl, graph, loading, handleAnalyze]);
+
   const selectedNode = selectedNodeId === "__MEMORY__"
     ? { id: "__MEMORY__", label: "Repository Memory & Architecture", type: "memory" }
     : graph?.nodes?.find((n: any) => n.id === selectedNodeId);
@@ -524,7 +537,8 @@ export default function Home() {
                     ? 'engine'
                     : healthModalOpen
                       ? healthModalTab === 'health'
-                        ? 'health'
+                        
+                      ? 'health'
                         : 'hotspots'
                       : null
           }

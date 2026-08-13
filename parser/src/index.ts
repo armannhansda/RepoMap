@@ -7,14 +7,7 @@ import { extractApiEndpoints } from "./apiExtractor.ts";
 import { extractTechStack } from "./techStackExtractor.ts";
 import { scanAndCacheRepository } from "./scanner.ts";
 
-async function main() {
-  const repoPath = process.argv[2];
-  
-  if (!repoPath) {
-    console.log("repository path required");
-    return;
-  }
-
+export async function parseRepository(repoPath: string) {
   // 1. Single-pass file scanning and memory caching (eliminates 80% of disk I/O across extractors)
   const cachedFiles = await scanAndCacheRepository(repoPath);
 
@@ -34,14 +27,29 @@ async function main() {
   ]);
 
   const graph = buildGraph(dependencies, functions, calls, classes, interfaces, techStack);
+  return graph;
+}
 
+async function main() {
+  const repoPath = process.argv[2];
+  
+  if (!repoPath) {
+    console.log("repository path required");
+    return;
+  }
+
+  const graph = await parseRepository(repoPath);
   console.log(JSON.stringify(graph));
 }
 
-try {
-  await main();
-} catch (error) {
-  console.error(error);
-  process.exit(1);
+// Only run main if executed directly from CLI, not when imported
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    try {
+      await main();
+    } catch (error) {
+      console.error(error);
+      process.exit(1);
+    }
+  })();
 }
-
