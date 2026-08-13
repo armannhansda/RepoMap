@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import RepoGraph from "@/components/RepoGraph";
+import RepoGraph, { type RepoGraphHandle } from "@/components/RepoGraph";
 import { analyzeRepo, explainRepo, generateArchitectureDiagram, getRepoProgressApi } from "@/services/api";
 import { generateDrawioXml } from "@/utils/exportDrawio";
 import Header from "@/components/Header";
@@ -30,7 +30,6 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
   const [estimatedDurationMs, setEstimatedDurationMs] = useState(32000);
   const [status, setStatus] = useState<"queued" | "in_progress" | "completed" | "failed">("in_progress");
 
-  // Poll backend progress every 600ms
   useEffect(() => {
     if (!repoUrl) return;
 
@@ -45,7 +44,6 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
           setEstimatedDurationMs(prog.estimatedTotalDurationMs || 32000);
           setStatus(prog.status);
 
-          // If backend moved to a new step index, trigger our buttery smooth upward fade-out transition!
           if (prog.stepIdx !== stepIdx && prog.stepDescription !== stepDescription) {
             setIsTransitioning(true);
             setTimeout(() => {
@@ -73,7 +71,6 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
     };
   }, [repoUrl, stepIdx, stepDescription, isTransitioning]);
 
-  // Smooth local timer ticking every 100ms between backend polls for real-time progress feel
   useEffect(() => {
     const tickInterval = setInterval(() => {
       if (status !== "completed") {
@@ -87,16 +84,12 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-xl animate-in fade-in duration-300 select-none px-4">
-      {/* Clean centered container - ZERO CARDS OR BOXES */}
       <div className="flex flex-col items-center max-w-xl w-full text-center space-y-8">
-        {/* Minimal Header */}
         <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
           Analyzing Repository
         </h3>
 
-        {/* Vertical Stream: Currently Processing & Upcoming (Smooth Upward Fade-Out) */}
         <div className="flex flex-col items-center justify-center min-h-[90px] w-full px-2 space-y-4 relative">
-          {/* Currently Processing Step (fades upward smoothly on completion) */}
           <div
             key={`processing-${stepIdx}`}
             className={`flex items-center justify-center gap-3 transition-all duration-500 transform ${isTransitioning
@@ -118,7 +111,6 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
             )}
           </div>
 
-          {/* Upcoming Step */}
           {nextStepDescription && (
             <div
               key={`upcoming-${stepIdx + 1}`}
@@ -133,7 +125,6 @@ function AnalysisProgressOverlay({ repoUrl }: { repoUrl?: string }) {
           )}
         </div>
 
-        {/* Minimal status subtext & Live Time Duration Progress */}
         <div className="flex flex-col items-center w-full max-w-md space-y-2.5 pt-1">
           <div className="flex items-center gap-2 text-[11px] font-mono text-gray-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
@@ -173,6 +164,13 @@ export default function Home() {
   const [isExplaining, setIsExplaining] = useState(false);
   const [explainError, setExplainError] = useState<string | null>(null);
   const [isGeneratingDiagram, setIsGeneratingDiagram] = useState(false);
+
+  // Ref to the graph canvas, used to trigger PNG/PDF export imperatively
+  // (see handleExportImage below) — the actual capture logic lives in
+  // RepoGraph since it needs direct access to the canvas DOM node and
+  // React Flow instance, neither of which this component has.
+  const repoGraphRef = useRef<RepoGraphHandle>(null);
+  const [isExportingImage, setIsExportingImage] = useState(false);
 
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiModalTab, setAiModalTab] = useState<'qa' | 'planner'>('qa');
@@ -328,37 +326,66 @@ export default function Home() {
     }
   }, [graph, repoUrl]);
 
+  // Triggers the actual export inside RepoGraph via the imperative ref
+  // (#26). Owns the loading state + user-facing toasts here, consistent
+  // with how handleGenerateDiagram above and handleAnalyze already do
+  // it for their own async actions.
+  // Large graphs (see RepoGraph.tsx's performExport / MAX_CAPTURE_DIMENSION)
+  // are capped conservatively to avoid crashing the browser, which means
+  // very large repos export at reduced clarity. Rather than let that
+  // surprise someone, warn them upfront and let them decide whether to
+  // proceed. Threshold picked to roughly match where the cap noticeably
+  // kicks in (see the PR discussion on #26 for the reasoning).
+  const LARGE_GRAPH_NODE_THRESHOLD = 150;
+  const [pendingExport, setPendingExport] = useState<{ format: 'png' | 'pdf'; nodeCount: number } | null>(null);
+
+  const runExport = useCallback(async (format: 'png' | 'pdf') => {
+    if (!repoGraphRef.current) return;
+    setIsExportingImage(true);
+    try {
+      if (format === 'png') {
+        await repoGraphRef.current.exportAsPng();
+      } else {
+        await repoGraphRef.current.exportAsPdf();
+      }
+      toast.success(`Graph exported as ${format.toUpperCase()}.`);
+    } catch (err: any) {
+      console.error("Graph image export error:", err);
+      toast.error(err?.message || `Failed to export graph as ${format.toUpperCase()}.`);
+    } finally {
+      setIsExportingImage(false);
+    }
+  }, []);
+
+  const handleExportImage = useCallback(async (format: 'png' | 'pdf') => {
+    if (!repoGraphRef.current) return;
+
+    const nodeCount = graph?.nodes?.length ?? 0;
+    if (nodeCount > LARGE_GRAPH_NODE_THRESHOLD) {
+      setPendingExport({ format, nodeCount });
+      return;
+    }
+
+    await runExport(format);
+  }, [graph, runExport]);
+
   const handleAnalyze = useCallback(async () => {
     if (!repoUrl) return;
     try {
       setLoading(true);
 
-      // 1. Check IndexedDB
       const existingRepo = await getRepository(repoUrl);
       const existingGraph = existingRepo ? await getGraph(repoUrl) : null;
 
       if (existingRepo && existingGraph) {
-        // Render instantly from cache — preserves the existing "instant"
-        // feel for repos that haven't changed since last analysis.
         setGraph({ nodes: existingGraph.nodes, edges: existingGraph.edges });
         setRepoId(existingRepo.id);
         setSelectedNodeId(existingRepo.lastOpenedFile);
         setLoading(false);
 
-        // 2. Quietly verify freshness in the background (fixes #22).
-        // The backend's own cache-hit path is fast (one small remote
-        // check, not a full re-clone), so this doesn't block the UI —
-        // if nothing changed, the user never notices. If the repo has
-        // new commits, we swap in the fresh graph and let them know.
         analyzeRepo(repoUrl)
           .then(async (result) => {
             if (result.commitHash && result.commitHash !== existingRepo.commitHash) {
-              // Clear the OLD repo/graph/openedFiles entries first —
-              // this repo changed, so any cached per-file source
-              // previews from the old commit are stale too (not just
-              // the graph). clearRepositoryData already atomically
-              // wipes repositories + graph + openedFiles for this
-              // repoUrl in one transaction.
               await clearRepositoryData(repoUrl);
 
               const updatedRepo = {
@@ -377,15 +404,12 @@ export default function Home() {
             }
           })
           .catch((err) => {
-            // A failed background freshness check shouldn't disrupt the
-            // user, who already has a working cached view — just log it.
             console.error("Background freshness check failed:", err);
           });
 
         return;
       }
 
-      // No local cache at all — full first-time analysis, unchanged.
       const result = await analyzeRepo(repoUrl);
 
       const newRepo = {
@@ -512,7 +536,9 @@ export default function Home() {
           onOpenOrchestrator={handleOpenOrchestrator}
           onOpenHealthTab={handleOpenHealthTab}
           onExportDiagram={handleGenerateDiagram}
+          onExportImage={handleExportImage}
           isGeneratingDiagram={isGeneratingDiagram}
+          isExportingImage={isExportingImage}
           activeFeatureTab={
             isExplainModalOpen
               ? 'explain'
@@ -548,7 +574,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Top-Left Minimized Explorer Button with File Icon */}
         {graph && isLeftSidebarCollapsed && (
           <button
             onClick={() => setIsLeftSidebarCollapsed(false)}
@@ -577,13 +602,13 @@ export default function Home() {
           ) : (
             <>
               <RepoGraph
+                ref={repoGraphRef}
                 graph={graph}
                 repoId={repoId}
                 selectedNodeId={selectedNodeId}
                 onNodeSelect={handleNodeSelect}
               />
 
-              {/* Feature Panels docked inside graph canvas under navbar */}
               <RepoExplanationModal
                 isOpen={isExplainModalOpen}
                 onClose={() => setIsExplainModalOpen(false)}
@@ -636,6 +661,40 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Large-graph export confirmation — styled in-app instead of a
+          native browser confirm() dialog, to match the rest of the UI. */}
+      {pendingExport && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-sm mx-4 bg-[#141419] border border-white/10 rounded-2xl shadow-2xl p-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-2 mb-2">
+              <Download className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-semibold text-white">Large graph export</h3>
+            </div>
+            <p className="text-xs text-white/60 leading-relaxed mb-5">
+              This repository has {pendingExport.nodeCount} nodes. Very large graphs are capped in export resolution to avoid crashing the browser, so some detail may appear less sharp when zoomed in.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setPendingExport(null)}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const { format } = pendingExport;
+                  setPendingExport(null);
+                  runExport(format);
+                }}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-black hover:bg-white/90 transition-colors cursor-pointer"
+              >
+                Continue Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
